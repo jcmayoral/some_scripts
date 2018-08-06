@@ -5,7 +5,7 @@ import re
 
 rospy.init_node("dynamic_reconfigure_planners")
 
-dyn_client = Client("/navigation/move_base_flex", None)
+dyn_client = Client("move_base", None)
 
 
 plugins = os.popen("rospack plugins --attrib=plugin nav_core").read()
