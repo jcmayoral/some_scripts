@@ -64,7 +64,8 @@ class TimeEstimator:
         #print "Curvature " , self.K 
 
         if self.samples >0:# not self.is_training:
-            self.estimated_time = self.estimated_time - (self.accumulator/self.samples)*self.lenght + self.K * self.lenght / self.weight
+            self.estimated_time = self.estimated_time - self.lenght * (self.accumulator/self.samples + self.K)
+            #self.estimated_time = self.estimated_time - (self.accumulator/self.samples)*self.lenght + self.K * self.lenght / self.weight
         print "Estimated TIME ", self.estimated_time
 
     def MotionCompleteCB(self,msg):
