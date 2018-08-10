@@ -19,12 +19,19 @@ class TimeEstimator:
         self.lenght = 1
         self.weight = 0
         self.K =0
+        self.A = list()
+        self.y = list()
+        self.coefficients = None
         rospy.spin()
 
     def trainingCB(self,msg):
         self.is_training = msg.data
         if not self.is_training:
             print "OFF SET per pixel is ", self.accumulator/self.samples
+        
+        arr = self.accumulator/self.samples * np.ones(len(self.y))
+        self.C = np.vstack([self.A, arr]).T
+        self.coefficients = np.linalg.lstsq(self.C, self.y)[0]
 
     def PathCB(self,msg):
         self.lenght = len(msg.poses)
@@ -58,14 +65,13 @@ class TimeEstimator:
         ddx = np.sum(ddx, axis=0)
         ddy = np.sum(ddy,axis=0)
 
-        self.K = (ddy * dx - ddx * dy) / (np.power(dx, 2) + np.power(dy, 2))
-        #self.K/=self.lenght
-
+        self.K = (ddy * dx - ddx * dy) / (np.power(dx, 2) + np.power(dy, 2)) 
         #print "Curvature " , self.K 
 
         if self.samples >0:# not self.is_training:
-            self.estimated_time = self.estimated_time - self.lenght * (self.accumulator/self.samples + self.K)
-            #self.estimated_time = self.estimated_time - (self.accumulator/self.samples)*self.lenght + self.K * self.lenght / self.weight
+            if self.coefficients is not None:
+                self.estimated_time = self.estimated_time + np.sum(self.coefficients * np.array([self.K , self.lenght]))
+
         print "Estimated TIME ", self.estimated_time
 
     def MotionCompleteCB(self,msg):
@@ -77,10 +83,13 @@ class TimeEstimator:
             self.weight += (self.estimated_time - measured_time)
 
         print "MEASURED TIME", measured_time
-        print "Percentage", (measured_time- self.estimated_time)/measured_time
+        #print "ERROR IN SECONDS", self.estimated_time - measured_time
+        self.A.append(self.K)
+        self.y.append(self.estimated_time - measured_time)
+
 
         fb_msgs = Vector3()
-        fb_msgs.x = np.fabs(measured_time - self.estimated_time)/measured_time
+        fb_msgs.x = abs(self.estimated_time - measured_time)/measured_time
         fb_msgs.y = self.lenght
         fb_msgs.z = self.K
         self.feedback_pub.publish(fb_msgs)
