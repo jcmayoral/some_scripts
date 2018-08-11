@@ -28,8 +28,8 @@ kp0, des0 = orb.compute(o_frame, kp0)
 #cv2.imshow("original", img2)
 MIN_MATCH_COUNT = 3
 
-bw = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
-ret,thresh = cv2.threshold(bw,127,200,0)
+#bw = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
+ret,thresh = cv2.threshold(o_frame,127,200,0)
 img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
 cnt = max(o_contours, key = cv2.contourArea)
@@ -62,8 +62,8 @@ for i in range (1,1000):
 
 
     #COUNTOURS STEP
-    bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    ret,thresh = cv2.threshold(bw,127,200,0)
+    #bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    ret,thresh = cv2.threshold(fgmask,127,200,0)
     img,contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
     defects = None
@@ -90,7 +90,7 @@ for i in range (1,1000):
     match_frame = cv2.drawMatches(o_frame, kp0, fgmask, kp, good, None) 
     cv2.imshow("MATCHES", match_frame)
 
-    #scale = original_area/area
+    scale = original_area-area
 
     #THIRD
     if len(good)>MIN_MATCH_COUNT:
@@ -100,7 +100,7 @@ for i in range (1,1000):
 	f_area = cv2.contourArea(dst_pts)
         #print "OAREA", area
         #print "FAREA", f_area
-        scale = f_area-area
+        #scale = f_area-area
  
     """
     #FOURTH COMPUTING PERSPECGTIVE TRANSFORMATION IN DEVELOPMENT
