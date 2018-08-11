@@ -17,6 +17,7 @@ cv2.waitKey(1)
 for i in range(10):
     retvale, o_frame = cap.read()
     o_frame = fgbg.apply(o_frame) #THis produces noise
+    #o_frame = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
 
 # find the keypoints with ORB
 kp0 = orb.detect(o_frame,None)
@@ -35,6 +36,7 @@ original_area = cv2.contourArea(cnt)
 
 
 for i in range (1,1000):
+    scale = -1
     #FIRST APPROACH POINTS AREA MATCHING
     retvale, frame = cap.read()
     #not so sure if needed... noise
@@ -54,7 +56,7 @@ for i in range (1,1000):
     # store all the good matches as per Lowe's ratio test.
     good = []
     for m,n in matches:
-        if m.distance < 0.1*n.distance:
+        if m.distance < 0.5*n.distance:
             good.append(m)
 
 
@@ -82,10 +84,11 @@ for i in range (1,1000):
         # show the images
         cv2.imshow("Biggest Contour Found", countour_frame)
 
-    scale = original_area/area
     #print "SCALE " , scale
     match_frame = cv2.drawMatches(o_frame, kp0, fgmask, kp, good, None) 
     cv2.imshow("MATCHES", match_frame)
+
+    #scale = original_area/area
 
     #THIRD
     if len(good)>MIN_MATCH_COUNT:
@@ -95,7 +98,7 @@ for i in range (1,1000):
 	f_area = cv2.contourArea(dst_pts)
         #print "OAREA", area
         #print "FAREA", f_area
-        print "SCALE", f_area/area
+        scale = f_area/area
  
 
     #FOURTH COMPUTING PERSPECGTIVE TRANSFORMATION IN DEVELOPMENT
