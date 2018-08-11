@@ -1,11 +1,16 @@
 import rospy
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
+plt.ion()
 cap = cv2.VideoCapture(0)
 fgbg = cv2.createBackgroundSubtractorMOG2()
 
+fig, ax = plt.subplots()	
 orb = cv2.ORB_create()
+
+data = list()
 
 cv2.waitKey(1)
 
@@ -18,8 +23,8 @@ kp0 = orb.detect(o_frame,None)
 # compute the descriptors with ORB
 kp0, des0 = orb.compute(o_frame, kp0)
 # draw only keypoints location,not size and orientation
-img2 = cv2.drawKeypoints(o_frame, kp0, None, color=(0,255,0), flags=0)
-cv2.imshow("original", img2)
+#img2 = cv2.drawKeypoints(o_frame, kp0, None, color=(0,255,0), flags=0)
+#cv2.imshow("original", img2)
 MIN_MATCH_COUNT = 4
 
 ret,thresh = cv2.threshold(o_frame,127,255,0)
@@ -27,10 +32,9 @@ img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
 cnt = max(o_contours, key = cv2.contourArea)
 original_area = cv2.contourArea(cnt)
-print "ORIGINAL AREA ", original_area
+
 
 for i in range (1,1000):
-
     #FIRST APPROACH POINTS AREA MATCHING
     retvale, frame = cap.read()
     #not so sure if needed... noise
@@ -44,13 +48,13 @@ for i in range (1,1000):
 
     FLANN_INDEX_KDTREE = 0
     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks = 50)
+    search_params = dict(checks = 30)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(np.asarray(des0,np.float32),np.asarray(des,np.float32), 2)
     # store all the good matches as per Lowe's ratio test.
     good = []
     for m,n in matches:
-        if m.distance < 0.7*n.distance:
+        if m.distance < 0.1*n.distance:
             good.append(m)
 
 
@@ -67,7 +71,7 @@ for i in range (1,1000):
         defects = cv2.convexityDefects(cnt,hull)
         complete_hull=[cv2.convexHull(c) for c in contours]
         hull_cnt_frame = cv2.drawContours(countour_frame, complete_hull, -1, (255,0,0))
-        cv2.imshow("ALL Contours", hull_cnt_frame)
+        #cv2.imshow("ALL Contours", hull_cnt_frame)
 
         countour_frame = frame
         # draw in blue the contours that were founded
@@ -89,8 +93,8 @@ for i in range (1,1000):
         dst_pts = np.float32([ kp[m.trainIdx].pt for m in good ])#.reshape(-1,1,2)
 	area = cv2.contourArea(src_pts)
 	f_area = cv2.contourArea(dst_pts)
-        print "OAREA", area
-        print "FAREA", f_area
+        #print "OAREA", area
+        #print "FAREA", f_area
         print "SCALE", f_area/area
  
 
@@ -109,7 +113,12 @@ for i in range (1,1000):
             #cv2.imshow("process", img2)
         except:
             print "soomething fails"
-    cv2.imshow("CURRENT", fgmask)
+    #cv2.imshow("CURRENT", fgmask)
+    x = np.arange(i)
+    data.append(scale)
+    plt.scatter(x, data)
+    fig.canvas.draw_idle()
+    plt.pause(0.1)
     cv2.waitKey(10)
 cap.release()
 cv2.destroyAllWindows()
