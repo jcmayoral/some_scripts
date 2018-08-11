@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 plt.ion()
 cap = cv2.VideoCapture(0)
-fgbg = cv2.createBackgroundSubtractorMOG2()
+fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False,history=30) #circa 1 second
 
 fig, ax = plt.subplots()	
 orb = cv2.ORB_create()
@@ -16,8 +16,8 @@ cv2.waitKey(1)
 
 for i in range(10):
     retvale, o_frame = cap.read()
-    o_frame = fgbg.apply(o_frame) #THis produces noise
-    #o_frame = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
+    #o_frame = fgbg.apply(o_frame) #THis produces noise
+    o_frame = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
 
 # find the keypoints with ORB
 kp0 = orb.detect(o_frame,None)
@@ -28,7 +28,7 @@ kp0, des0 = orb.compute(o_frame, kp0)
 #cv2.imshow("original", img2)
 MIN_MATCH_COUNT = 4
 
-ret,thresh = cv2.threshold(o_frame,127,255,0)
+ret,thresh = cv2.threshold(o_frame,127,200,0)
 img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
 cnt = max(o_contours, key = cv2.contourArea)
@@ -40,10 +40,10 @@ for i in range (1,1000):
     #FIRST APPROACH POINTS AREA MATCHING
     retvale, frame = cap.read()
     #not so sure if needed... noise
-    fgmask = fgbg.apply(frame)
+    #fgmask = fgbg.apply(frame)
     #instead 
-    #fgmask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # find the keypoints with ORB
+    fgmask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #find the keypoints with ORB
     kp = orb.detect(fgmask,None)
     # compute the descriptors with ORB
     kp, des = orb.compute(fgmask, kp)
@@ -56,12 +56,12 @@ for i in range (1,1000):
     # store all the good matches as per Lowe's ratio test.
     good = []
     for m,n in matches:
-        if m.distance < 0.5*n.distance:
+        if m.distance < 0.7*n.distance:
             good.append(m)
 
 
     #COUNTOURS APPROACH
-    ret,thresh = cv2.threshold(fgmask,127,255,0)
+    ret,thresh = cv2.threshold(fgmask,127,200,0)
     img,contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
     defects = None
@@ -100,7 +100,7 @@ for i in range (1,1000):
         #print "FAREA", f_area
         scale = f_area/area
  
-
+    """
     #FOURTH COMPUTING PERSPECGTIVE TRANSFORMATION IN DEVELOPMENT
     if len(good)>MIN_MATCH_COUNT:
         src_pts = np.float32([ kp0[m.queryIdx].pt for m in good ])#.reshape(-1,1,2)
@@ -117,6 +117,7 @@ for i in range (1,1000):
         except:
             print "soomething fails"
     #cv2.imshow("CURRENT", fgmask)
+    """
     x = np.arange(i)
     data.append(scale)
     plt.scatter(x, data)
