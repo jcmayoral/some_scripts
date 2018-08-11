@@ -11,28 +11,21 @@ cv2.waitKey(1)
 
 for i in range(10):
     retvale, o_frame = cap.read()
-    fgmask = fgbg.apply(o_frame)
+    o_frame = fgbg.apply(o_frame) #THis produces noise
 
 # find the keypoints with ORB
-kp0 = orb.detect(fgmask,None)
+kp0 = orb.detect(o_frame,None)
 # compute the descriptors with ORB
-kp0, des0 = orb.compute(fgmask, kp0)
+kp0, des0 = orb.compute(o_frame, kp0)
 # draw only keypoints location,not size and orientation
-img2 = cv2.drawKeypoints(fgmask, kp0, None, color=(0,255,0), flags=0)
+img2 = cv2.drawKeypoints(o_frame, kp0, None, color=(0,255,0), flags=0)
 cv2.imshow("original", img2)
 MIN_MATCH_COUNT = 4
 
-ret,thresh = cv2.threshold(fgmask,127,255,0)
+ret,thresh = cv2.threshold(o_frame,127,255,0)
 img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
-largest_area = -1
-
-for i in range(0, len(o_contours)):
-    area = cv2.contourArea(o_contours[i])
-    if (area>largest_area):
-        largest_area=area
-        largest_contour_index=i
-cnt = o_contours[largest_contour_index]
+cnt = max(o_contours, key = cv2.contourArea)
 original_area = cv2.contourArea(cnt)
 print "ORIGINAL AREA ", original_area
 
@@ -41,9 +34,9 @@ for i in range (1,1000):
     #FIRST APPROACH POINTS AREA MATCHING
     retvale, frame = cap.read()
     #not so sure if needed... noise
-    #fgmask = fgbg.apply(frame)
+    fgmask = fgbg.apply(frame)
     #instead 
-    fgmask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #fgmask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # find the keypoints with ORB
     kp = orb.detect(fgmask,None)
     # compute the descriptors with ORB
@@ -67,28 +60,28 @@ for i in range (1,1000):
 
     defects = None
     if len(contours) >2:
+        countour_frame = frame
         c = max(contours, key = cv2.contourArea)
 	area = cv2.contourArea(c)
         hull = cv2.convexHull(cnt,returnPoints = False)
         defects = cv2.convexityDefects(cnt,hull)
         complete_hull=[cv2.convexHull(c) for c in contours]
-        hull_cnt_frame = cv2.drawContours(frame, complete_hull, -1, (255,0,0))
-        cv2.imshow("MAX AREA", hull_cnt_frame)
-
-        # draw in blue the contours that were founded
-        cv2.drawContours(frame, contours, -1, 255, 3)
-        #find the biggest area
-        c = max(contours, key = cv2.contourArea)
+        hull_cnt_frame = cv2.drawContours(countour_frame, complete_hull, -1, (255,0,0))
+        cv2.imshow("ALL Contours", hull_cnt_frame)
 
         countour_frame = frame
+        # draw in blue the contours that were founded
+        #cv2.drawContours(frame, contours, -1, 255, 3)
         x,y,w,h = cv2.boundingRect(c)
-        # draw the book contour (in green)
+        # draw the biggest contour (in green)
         cv2.rectangle(countour_frame,(x,y),(x+w,y+h),(0,255,0),2)
         # show the images
-        cv2.imshow("Result", countour_frame)
+        cv2.imshow("Biggest Contour Found", countour_frame)
 
     scale = original_area/area
     #print "SCALE " , scale
+    match_frame = cv2.drawMatches(o_frame, kp0, fgmask, kp, good, None) 
+    cv2.imshow("MATCHES", match_frame)
 
     #THIRD
     if len(good)>MIN_MATCH_COUNT:
@@ -116,6 +109,7 @@ for i in range (1,1000):
             #cv2.imshow("process", img2)
         except:
             print "soomething fails"
+    cv2.imshow("CURRENT", fgmask)
     cv2.waitKey(10)
 cap.release()
 cv2.destroyAllWindows()
