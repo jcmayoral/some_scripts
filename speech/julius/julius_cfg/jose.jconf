@@ -1,0 +1,17 @@
+#
+# Sample Jconf configuration file
+# for Julius library rev.4.2.2
+#
+# @author Kamil Skowron
+
+#-nolog				                     # disable all logs
+-module 10500
+-n 1
+-quiet				                     # output less log
+-input mic    			                     # live microphone
+-v my_sample.dict			                     # word dictionary
+-dfa my_sample.dfa	                                     # specify DFA and dictionary separately
+-h /usr/share/julius-voxforge/acoustic/hmmdefs       # acoustic HMM (ascii or Julius binary)
+-hlist /usr/share/julius-voxforge/acoustic/tiedlist  # HMMList to map logical phone to physical
+
+################################################################# end of file

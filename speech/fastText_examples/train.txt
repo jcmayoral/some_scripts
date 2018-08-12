@@ -1,0 +1,26 @@
+__label__Move Come to 
+__label__Move Come here 
+__label__Move Go to
+__label__Move Follow me
+__label__Move Bring me
+__label__Move Navigate to 
+__label__Pick Take it
+__label__Pick Hold the
+__label__Pick Take the
+__label__Pick Pick it 
+__label__Pick Pick them
+__label__Place Place them
+__label__Place Place the
+__label__Place Place it on
+__label__Place Put it 
+__label__Place Drop it
+__label__Place Put it with the others
+__label__Perceive Where are 
+__label__Perceive What is there
+__label__Perceive What is this
+__label__Perceive Can you see my
+__label__Perceive Find my 
+__label__Perceive Search for 
+__label__Perceive Can you read 
+__label__Perceive Look at the
+ 

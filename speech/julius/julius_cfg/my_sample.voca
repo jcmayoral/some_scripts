@@ -1,0 +1,36 @@
+% NS_B
+<s>        sil
+
+% NS_E
+</s>        sil
+
+% ROBOT
+JENNY       jh eh n iy
+LUCY        l uw s iy
+
+% POSE
+POSE        p ow z
+
+% ACTION
+SAVE        s ey v
+DELETE      d ix l iy t
+
+% CONNECTOR
+_          ah n d er s k ao r
+
+% PLACE
+KITCHEN        k ih ch ax n
+PLAYGROUND     p l ey g r aw n d
+DOOR           d ao r
+
+% DIGIT
+5       f ay v
+4       f ao r
+9       n ay n
+8       ey t
+1       w ah n
+7       s eh v ax n
+6       s ih k s
+3       th r iy
+2       t uw
+0       z ih r ow
