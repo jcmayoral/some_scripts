@@ -1,6 +1,8 @@
-this repository contains scripts with some ideas under developmenti for robotics application, mainly navigations. 
+this repository contains scripts with some ideas under development for robotics application, mainly navigations. 
+
+Feel free to contribute or ask. 
 
 
-Feel free to contribute...
+Regards, 
 
-The documentations is on the way
+Jose
