@@ -71,11 +71,12 @@ print new_config
 
 print "DELETING OLD PARAMS"
 
-ns = '/ns'
+ns = '/ns' + '/'
 
 old_parameters = rosparam.get_param(ns)
 
-for param in b:
+for param in old_parameters:
+    print param
     rosparam.delete_param(ns+param)
 
 print "LOADING NEW PARAMS"
