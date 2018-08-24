@@ -1,11 +1,12 @@
 import os
 from dynamic_reconfigure.client import Client
 import rospy
+import rosparam
 import re
 
 rospy.init_node("dynamic_reconfigure_planners")
 
-dyn_client = Client("/move_base", None)
+dyn_client = Client("/navigation/move_base_flex", None)
 
 
 plugins = os.popen("rospack plugins --attrib=plugin nav_core").read()
@@ -66,6 +67,25 @@ for i in range(len(available_local_planners)):
 new_config["local_planner"] = available_local_planners[int(raw_input('Choose a number: '))]
 
 print new_config
+
+
+print "DELETING OLD PARAMS"
+
+ns = '/ns'
+
+old_parameters = rosparam.get_param(ns)
+
+for param in b:
+    rosparam.delete_param(ns+param)
+
+print "LOADING NEW PARAMS"
+
+new_config_file = rosparam.load_file('/home/banos/Downloads/cheat.yaml')
+
+for params,ns in new_config_file:
+    rosparam.upload_params(ns,params)
+
+
 dyn_client.update_configuration(new_config)
 #break
 
