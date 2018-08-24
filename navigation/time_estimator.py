@@ -12,6 +12,8 @@ class TimeEstimator:
         self.is_training = True
         rospy.Subscriber("/navigation/move_base_flex/SBPLLatticePlanner/plan", Path, self.PathCB, queue_size=1)
         rospy.Subscriber("/navigation/move_base_flex/PoseFollower/motion_finished", Empty, self.MotionCompleteCB, queue_size=1)
+        rospy.Subscriber("/navigation/move_base_flex/OrientedDWAPlanner/motion_finished", Empty, self.MotionCompleteCB, queue_size=1)
+
         rospy.Subscriber("/time_estimator/training", Bool, self.trainingCB, queue_size=1)
         self.feedback_pub = rospy.Publisher("time_estimator/fb", Vector3)
         self.start_time = rospy.Time.now()
