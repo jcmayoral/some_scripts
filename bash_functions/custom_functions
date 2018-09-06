@@ -1,0 +1,48 @@
+
+repeat() {
+n=$1
+shift
+for ((i = 1; i <= $n; i++))
+do
+    echo "$(tput setaf 1) Cycles to GO $((i)) $(tput sgr 0)"
+    echo "EXECUTING " $@
+    $@
+done
+unset n
+}
+
+
+rpfind(){
+    raw_string=" "
+    auxiliar_grep="| grep "
+
+    for var in "$@"
+    do
+        raw_string=$raw_string$auxiliar_grep$var" "
+    done
+
+    raw_output=$(eval "rosparam list " $raw_string )
+
+    output=${raw_output// /$'\n'}
+    printf '%s\n' "${output[@]}"
+    unset raw_string raw_output output auxiliar_grep
+}
+
+
+rtfind(){
+    raw_string=" "
+    auxiliar_grep="| grep "
+
+    for var in "$@"
+    do
+        raw_string=$raw_string$auxiliar_grep$var" "
+    done
+
+
+    raw_output=$(eval "rostopic list " $raw_string )
+
+    output=${raw_output// /$'\n'}
+    printf '%s\n' "${output[@]}"
+    unset raw_string raw_output output auxiliar_grep
+}
+
