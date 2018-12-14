@@ -1,5 +1,8 @@
 import paho.mqtt.client as mqtt
 
+global my_payload
+my_payload = 10
+
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -14,8 +17,11 @@ def on_message(client, userdata, msg):
     print("INFO: ", msg.info)
     print("PAYLOAD: ", msg.payload)
     print("TOPIC: ", msg.topic)
-    print (userdata)
-    client.publish(topic="mayoral", payload=1000)
+    #print (userdata)
+    global my_payload
+    my_payload += my_payload
+    print("my payload",  my_payload)
+    client.publish(topic="mayoral", payload=my_payload)
 
 
 client = mqtt.Client()
