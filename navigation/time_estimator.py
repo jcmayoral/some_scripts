@@ -10,35 +10,27 @@ class TimeEstimator:
         self.mean_primitive_error = 0
         self.samples = 0
         self.is_training = True
-        rospy.Subscriber("/navigation/move_base_flex/SBPLLatticePlanner/plan", Path, self.PathCB, queue_size=1)
-        rospy.Subscriber("/navigation/move_base_flex/PoseFollower/motion_finished", Empty, self.MotionCompleteCB, queue_size=1)
-        rospy.Subscriber("/navigation/move_base_flex/OrientedDWAPlanner/motion_finished", Empty, self.MotionCompleteCB, queue_size=1)
+        rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.PathCB, queue_size=1)
+        rospy.Subscriber("/motion_finished", Empty, self.MotionCompleteCB, queue_size=1)
 
-        rospy.Subscriber("/time_estimator/training", Bool, self.trainingCB, queue_size=1)
-        self.feedback_pub = rospy.Publisher("time_estimator/fb", Vector3)
         self.start_time = rospy.Time.now()
         self.estimated_time = 0
         self.lenght = 1
         self.K =0
         self.A = list()
         self.y = list()
-        self.coefficients = None
+        self.coefficients = np.zeros(6)
         rospy.spin()
 
-    def trainingCB(self,msg):
-        self.is_training = msg.data
-        if not self.is_training:
-            print "OFF SET per primitive is ", self.mean_primitive_error/self.samples
-        
-        #offset = np.ones(len(self.y))
-        #self.C = np.vstack([self.A, offset]).T
-        self.coefficients = np.linalg.lstsq(self.A, self.y)[0]
-        print self.coefficients
+    def train_data(self):
+        if len(self.y) > 2:
+            self.coefficients = np.linalg.lstsq(self.A, self.y)[0]
 
     def PathCB(self,msg):
         self.lenght = len(msg.poses)
-        self.estimated_time = 0.1*len(msg.poses)
-        print "ORIGINAL ESTIMATION" , self.estimated_time
+        simple_approximation = 0.1*len(msg.poses)
+        rospy.logwarn("Simple Time Estimation %f " % simple_approximation)
+
         self.start_time = rospy.Time.now()
 
         p0 = msg.poses[0]
@@ -68,35 +60,29 @@ class TimeEstimator:
         ddx = np.sum(ddx, axis=0)
         ddy = np.sum(ddy,axis=0)
 
-        self.K = (ddy * dx - ddx * dy) / (np.power(dx, 2) + np.power(dy, 2)) 
-        #print "Curvature " , self.K 
+        curvature = (ddy * dx - ddx * dy) / (np.power(dx, 2) + np.power(dy, 2))
+        self.features = [dx,dy,ddx,ddy,curvature, self.lenght]
 
+        if self.samples >0:
+            statistic_estimation = self.estimated_time + self.lenght* self.mean_primitive_error/self.samples
+            rospy.logwarn("Statistical Estimation %f" , statistic_estimation)
 
-        if self.samples >0:# not self.is_training:
-            print "Statistical Estimation " , self.estimated_time + self.lenght* self.mean_primitive_error/self.samples
-            if self.coefficients is not None:
-                estimated_time = np.sum(self.coefficients * np.array([self.K , self.estimated_time]))
-                print "Linearization Estimation " , estimated_time
+        lst_estimated_time = np.sum(self.coefficients * np.array([dx, dy, ddx, ddy,curvature, self.lenght]))
+        rospy.logwarn("Complete Linearization Estimation %f " % lst_estimated_time)
 
 
     def MotionCompleteCB(self,msg):
         measured_time = (rospy.Time.now() - self.start_time).to_sec()
 
-        if self.is_training:
-            self.samples = self.samples+1
-            self.mean_primitive_error += (measured_time - self.estimated_time)/self.lenght
+        self.samples = self.samples+1
+        self.mean_primitive_error += (measured_time - self.estimated_time)/self.lenght
 
-        print "MEASURED TIME", measured_time
-        #print "ERROR IN SECONDS", self.estimated_time - measured_time
-        self.A.append([self.K, self.estimated_time])
+        rospy.logerr("Measured Time %f",  measured_time)
+
+        self.A.append(self.features)
         self.y.append(measured_time)
 
+        self.train_data()
 
-        fb_msgs = Vector3()
-        fb_msgs.x = abs(self.estimated_time - measured_time)/measured_time
-        fb_msgs.y = self.lenght
-        fb_msgs.z = self.K
-        self.feedback_pub.publish(fb_msgs)
-        #print "ERROR per primitive ", (self.estimated_time - measured_time)/self.lenght
 
 TimeEstimator()
