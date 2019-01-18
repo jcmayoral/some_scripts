@@ -82,26 +82,24 @@ available_global_planners = list()
 available_local_planners = list()
 
 for n_t in plugin_name_type:
-    print n_t[0], n_t[2]
     if n_t[2] == "nav_core::BaseGlobalPlanner":
         available_global_planners.append(n_t[0])
 
     if n_t[2] == "nav_core::BaseLocalPlanner":
         available_local_planners.append(n_t[0])
 
-
 new_config = dict()
 new_config["base_global_planner"] = "Error"
 new_config["base_local_planner"] = "Error"
 
-print "Select Your Global Planner"
+rospy.loginfo("Select your chosen Global Planner")
 
 for i in range(len(available_global_planners)):
     print "Available GP ", i , available_global_planners[i]
 
 new_config["base_global_planner"] = available_global_planners[int(raw_input('Choose a number: '))]
 
-print "Select Your Local Planner"
+rospy.loginfo("Select your chosen Local Planner")
 
 for i in range(len(available_local_planners)):
     print "Available LP ", i , available_local_planners[i]
