@@ -108,8 +108,11 @@ for i in range(len(available_local_planners)):
 
 new_config["base_local_planner"] = available_local_planners[int(raw_input('Choose a number: '))]
 
-delete_old_params(navigation_server + current_global_planner_name)
-delete_old_params(navigation_server + current_local_planner_name)
+is_to_delete = raw_input("Do you want to delete old parameters? y/n")
+
+if is_to_delete is "y":
+    delete_old_params(navigation_server + current_global_planner_name)
+    delete_old_params(navigation_server + current_local_planner_name)
 
 rospack = rospkg.RosPack()
 try:
