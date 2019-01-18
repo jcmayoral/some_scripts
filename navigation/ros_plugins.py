@@ -5,22 +5,51 @@ import rosparam
 import re
 import rospkg
 
+def delete_old_params(complete_namespace):
+    rospy.loginfo("Deleting old params")
+    if not rospy.has_param(complete_namespace):
+        rospy.logwarn("Parameters not set")
+        return
+
+    old_parameters = rosparam.get_param(complete_namespace)
+    for param in old_parameters:
+        try:
+            rosparam.delete_param(complete_namespace+'/'+param)
+        except:
+            rospy.logwarn("param not found %s", complete_namespace+'/'+param)
+
+def load_new_params(filepath):
+    rospy.loginfo("Loading new params")
+    new_config_file = rosparam.load_file(filepath)
+
+    for params,ns in new_config_file:
+        rosparam.upload_params(navigation_server + ns,params)
+
 rospy.init_node("dynamic_reconfigure_planners")
 
 navigation_server = "/move_base/"
-config_package = "mdr_2dnav"
+config_package = "config_pkg"
 
 dyn_client = Client(navigation_server, None)
 
 current_global_planner = rosparam.get_param(navigation_server + "base_global_planner")
-current_global_planner_ns = current_global_planner.split('/')[0]
-current_global_planner_name = current_global_planner.split('/')[1]
-current_local_planner = rosparam.get_param(navigation_server + "base_local_planner")
-current_local_planner_ns = current_local_planner.split('/')[0]
-current_local_planner_name = current_local_planner.split('/')[1]
 
-rospack = rospkg.RosPack()
-config_path = rospack.get_path(config_package)
+try:
+    current_global_planner_ns = current_global_planner.split('/')[0]
+    current_global_planner_name = current_global_planner.split('/')[1]
+except:
+    current_global_planner_ns = ""
+    current_global_planner_name = current_global_planner.split('/')[0]
+
+current_local_planner = rosparam.get_param(navigation_server + "base_local_planner")
+
+try:
+    current_local_planner_ns = current_local_planner.split('/')[0]
+    current_local_planner_name = current_local_planner.split('/')[1]
+except:
+    current_local_planner_ns = ""
+    current_local_planner_name = current_local_planner.split('/')[0]
+
 
 plugins = os.popen("rospack plugins --attrib=plugin nav_core").read()
 plugins = plugins.splitlines()
@@ -79,49 +108,18 @@ for i in range(len(available_local_planners)):
 
 new_config["base_local_planner"] = available_local_planners[int(raw_input('Choose a number: '))]
 
-print "DELETING OLD GLOBAL PARAMS"
+delete_old_params(navigation_server + current_global_planner_name)
+delete_old_params(navigation_server + current_local_planner_name)
 
-ns = navigation_server + current_global_planner_name
-old_parameters = rosparam.get_param(ns)
-
-for param in old_parameters:
-    rosparam.delete_param(ns+'/'+param)
-
-
-print "DELETING OLD LOCAL PARAMS"
-
-ns = navigation_server + current_local_planner_name
-old_parameters = rosparam.get_param(ns)
-
-for param in old_parameters:
-    rosparam.delete_param(ns+'/'+param)
-
-print "LOADING NEW PARAMS GLOBAL PLANNER"
-
-new_global_planner_ns = new_config["base_global_planner"].split('/')[0]
-print config_path+'/'+ new_global_planner_ns + '.yaml'
-
-new_config_file = rosparam.load_file(config_path+'/'+ new_global_planner_ns + '.yaml')
-
-for params,ns in new_config_file:
-    print ns, params
-    rosparam.upload_params(navigation_server + ns,params)
+rospack = rospkg.RosPack()
+try:
+    config_path = rospack.get_path(config_package)
+    load_new_params(config_path+'/'+ new_config["base_global_planner"].split('/')[0] + '.yaml')
+    load_new_params(config_path+'/'+ new_config["base_local_planner"].split('/')[0] + '.yaml')
+except:
+    rospy.logerr("Config package is not found")
 
 
-print "LOADING NEW PARAMS LOCAL PLANNER"
-
-new_local_planner_ns = new_config["base_local_planner"].split('/')[0]
-print config_path+'/'+ new_local_planner_ns + '.yaml'
-
-new_config_file = rosparam.load_file(config_path+'/'+ new_local_planner_ns + '.yaml')
-
-for params,ns in new_config_file:
-    print ns, params
-    rosparam.upload_params(navigation_server + ns,params)
-
-
-print new_config
 dyn_client.update_configuration(new_config)
-#break
 
-print "finish"
+rospy.loginfo("Planners have been updated")
