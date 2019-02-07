@@ -24,7 +24,7 @@ class SVMObserver:
 
     def imuCB(self,msg):
         X = np.array([[msg.linear_acceleration.x, msg.linear_acceleration.y,
-                       msg.angular_velocity.z]])
+                       msg.linear_acceleration.z]])
 
         if self.is_training:
             self.clf.fit(X)
