@@ -11,15 +11,16 @@ class SVMObserver:
     def __init__(self):
         rospy.init_node('svm_imu_test')
         rospy.Subscriber('/android/imu', Imu, self.imuCB)
-        rospy.Subscriber('mode', Bool, self.modeCB)
-        self.event_publisher = rospy.Publisher("/collisions_0", sensorFusionMsg, queue_size=10)
-
         self.is_training = True
+        self.event_publisher = rospy.Publisher("/collisions_0", sensorFusionMsg, queue_size=10)
         self.clf = OneClassSVM(nu=0.5, kernel="poly", gamma=0.1)
+        rospy.loginfo("Training period starting")
+        rospy.Timer(rospy.Duration(30), self.timer_cb)
         rospy.spin()
 
-    def modeCB(self,msg):
-        self.is_training = msg.data
+    def timer_cb(self, event):
+        rospy.loginfo("Training period has ended")
+        self.is_training = False
 
     def imuCB(self,msg):
 
@@ -30,13 +31,12 @@ class SVMObserver:
             self.clf.fit(X)
 
         else:
-	    fb_msg = sensorFusionMsg()
+            fb_msg = sensorFusionMsg()
             fb_msg.sensor_id.data = "sv_detector"
-	    fb_msg.data = X.flatten()
+            fb_msg.data = X.flatten()
+            detected_class = self.clf.predict(X)
 
-	    detected_class = self.clf.predict(X)
-
-	    if detected_class > 0:
+            if detected_class > 0:
                 rospy.logwarn('Event Detected')
                 fb_msg.msg = sensorFusionMsg.WARN
 
