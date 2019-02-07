@@ -15,7 +15,7 @@ class SVMObserver:
         self.event_publisher = rospy.Publisher("/collisions_0", sensorFusionMsg, queue_size=10)
         self.clf = OneClassSVM(nu=0.5, kernel="poly", gamma=0.1)
         rospy.loginfo("Training period starting")
-        rospy.Timer(rospy.Duration(30), self.timer_cb)
+        rospy.Timer(rospy.Duration(30), self.timer_cb,oneshot=True)
         rospy.spin()
 
     def timer_cb(self, event):
@@ -23,7 +23,6 @@ class SVMObserver:
         self.is_training = False
 
     def imuCB(self,msg):
-
         X = np.array([[msg.linear_acceleration.x, msg.linear_acceleration.y,
                        msg.angular_velocity.z]])
 
