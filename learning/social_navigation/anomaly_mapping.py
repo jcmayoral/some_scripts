@@ -13,7 +13,7 @@ class SVMObserver:
     def __init__(self):
         rospy.init_node("imu_anomaly_detection_layer_hack")
         self.tf_listener = TransformListener()
-        rospy.Subscriber('/android/imu', Imu, self.imuCB)
+        rospy.Subscriber('/android/imu', Imu, self.imuCB, queue_size=1)
         rospy.Subscriber('mode', Bool, self.modeCB)
         self.pub = rospy.Publisher("/people", People, queue_size=10)
         self.step = 0.4
