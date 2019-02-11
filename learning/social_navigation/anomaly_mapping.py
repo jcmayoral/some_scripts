@@ -15,13 +15,11 @@ class SVMObserver:
         self.tf_listener = TransformListener()
         rospy.Subscriber('/android/imu', Imu, self.imuCB, queue_size=1)
         rospy.Subscriber('mode', Bool, self.modeCB)
-        self.pub = rospy.Publisher("/people", People, queue_size=10)
-        self.step = 0.4
-        self.counter = 1
+        self.pub = rospy.Publisher("/people", People, queue_size=1)
         self.fb_people = People()
         self.fb_people.header.frame_id = 'map'
         self.is_training = True
-        self.clf = OneClassSVM(nu=0.5, kernel="poly", gamma=0.5)
+        self.clf = OneClassSVM(nu=0.1,kernel="poly", degree=3)
         rospy.spin()
 
     def publish_pose(self):

@@ -6,23 +6,21 @@ from numpy import fabs
 global publisher
 
 
-def unsigned(n):
-    return int(n) & 0xFFFFFFFF
-
 def topic_cb(msg):
     gen = pc2.read_points(msg, skip_nans=False, field_names=("x", "y", "z", ))
     transformed_image = Image()
     transformed_image.header.frame_id = "velodyne"
     transformed_image.height = msg.width/128
-    transformed_image.width = 128#msg.width#/128
+    transformed_image.width = 128
     transformed_image.encoding = "mono8"
     data = [0] * transformed_image.height * transformed_image.width
 
     scale_factor = 5
 
-    for i in range(transformed_image.height * transformed_image.width-1, 1, -1):
-        value = abs(gen.next()[2])
-        data[i] = min(255,value*255/scale_factor) #int(p[2])])
+    for i in range(transformed_image.height * transformed_image.width-1, -1, -1):
+        value = fabs(gen.next()[2])
+        data[i] = min(254, value*254/scale_factor)
+
     transformed_image.data = data
     publisher.publish(transformed_image)
 
