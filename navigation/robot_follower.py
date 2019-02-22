@@ -14,85 +14,76 @@ data = list()
 
 cv2.waitKey(1)
 
-for i in range(10):
-    retvale, o_frame = cap.read()
-    o_frame = fgbg.apply(o_frame) #THis produces noise
-    #o_frame = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
 
-# find the keypoints with ORB
-kp0 = orb.detect(o_frame,None)
-# compute the descriptors with ORB
-kp0, des0 = orb.compute(o_frame, kp0)
-# draw only keypoints location,not size and orientation
-#img2 = cv2.drawKeypoints(o_frame, kp0, None, color=(0,255,0), flags=0)
-#cv2.imshow("original", img2)
-MIN_MATCH_COUNT = 3
+c_number = 0
 
-#bw = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
-ret,thresh = cv2.threshold(o_frame,127,200,0)
-img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
+while c_number < 2:
+  retvale, frame = cap.read()
+  frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+  #o_frame = fgbg.apply(frame) #THis produces noise
+  o_frame = frame
+  # find the keypoints with ORB
+  kp0 = orb.detect(o_frame,None)
+  # compute the descriptors with ORB
+  kp0, des0 = orb.compute(o_frame, kp0)
+  # draw only keypoints location,not size and orientation
+  #img2 = cv2.drawKeypoints(o_frame, kp0, None, color=(0,255,0), flags=0)
+  #cv2.imshow("original", img2)
+  MIN_MATCH_COUNT = 3
+
+  #bw = cv2.cvtColor(o_frame, cv2.COLOR_BGR2GRAY)
+  ret,thresh = cv2.threshold(o_frame,127,200,0)
+  img,o_contours,hierarchy = cv2.findContours(thresh, 1, 2)
+  c_number=len(o_contours)
+
 
 cnt = max(o_contours, key = cv2.contourArea)
 original_area = cv2.contourArea(cnt)
 
 
+hull = cv2.convexHull(cnt,returnPoints = False)
+defects = cv2.convexityDefects(cnt,hull)
+complete_hull=[cv2.convexHull(c) for c in o_contours]
+hull_cnt_frame = cv2.drawContours(img, complete_hull, -1, (255,0,0))
+cv2.imshow("Original", hull_cnt_frame)
+
+
 for i in range (1,1000):
     scale = -1
     retvale, frame = cap.read()
-    #not so sure if needed... noise
-    fgmask = fgbg.apply(frame)
-    #instead 
-    #fgmask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #fgmask = frame
-    #find the keypoints with ORB
-    kp = orb.detect(fgmask,None)
-    # compute the descriptors with ORB
-    kp, des = orb.compute(fgmask, kp)
-
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks = 30)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(np.asarray(des0,np.float32),np.asarray(des,np.float32), 2)
-    # store all the good matches as per Lowe's ratio test.
-    good = []
-    for m,n in matches:
-        if m.distance < 0.6*n.distance:
-            good.append(m)
-
-
-    #COUNTOURS STEP
-    #bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    ret,thresh = cv2.threshold(fgmask,127,200,0)
+    bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #ret,thresh = cv2.threshold(fgmask,127,200,0)
+    #fgmask = fgbg.apply(bw)
+    ret,thresh = cv2.threshold(bw,127,200,0)
     img,contours,hierarchy = cv2.findContours(thresh, 1, 2)
 
     defects = None
     if len(contours) >2:
-        countour_frame = frame
         c = max(contours, key = cv2.contourArea)
 	area = cv2.contourArea(c)
         hull = cv2.convexHull(cnt,returnPoints = False)
         defects = cv2.convexityDefects(cnt,hull)
         complete_hull=[cv2.convexHull(c) for c in contours]
-        hull_cnt_frame = cv2.drawContours(countour_frame, complete_hull, -1, (255,0,0))
+        hull_cnt_frame = cv2.drawContours(img, complete_hull, -1, (255,0,0))
         #cv2.imshow("ALL Contours", hull_cnt_frame)
 
-        countour_frame = frame
         # draw in blue the contours that were founded
         #cv2.drawContours(frame, contours, -1, 255, 3)
-        x,y,w,h = cv2.boundingRect(c)
+        #x,y,w,h = cv2.boundingRect(c)
         # draw the biggest contour (in green)
-        cv2.rectangle(countour_frame,(x,y),(x+w,y+h),(0,255,0),2)
+        #cv2.rectangle(countour_frame,(x,y),(x+w,y+h),(0,255,0),2)
         # show the images
-        cv2.imshow("Biggest Contour Found", countour_frame)
+        cv2.imshow("Biggest Contour Found", hull_cnt_frame)
 
     #print "SCALE " , scale
-    match_frame = cv2.drawMatches(o_frame, kp0, fgmask, kp, good, None) 
-    cv2.imshow("MATCHES", match_frame)
+    #match_frame = cv2.drawMatches(o_frame, kp0, fgmask, kp, good, None) 
+    #cv2.imshow("MATCHES", match_frame)
+    #cv2.imshow("MATCHES", o_frame)
 
     scale = original_area-area
 
     #THIRD
+    """
     if len(good)>MIN_MATCH_COUNT:
         src_pts = np.float32([ kp0[m.queryIdx].pt for m in good ])#.reshape(-1,1,2)
         dst_pts = np.float32([ kp[m.trainIdx].pt for m in good ])#.reshape(-1,1,2)
@@ -102,7 +93,6 @@ for i in range (1,1000):
         #print "FAREA", f_area
         #scale = f_area-area
  
-    """
     #FOURTH COMPUTING PERSPECGTIVE TRANSFORMATION IN DEVELOPMENT
     if len(good)>MIN_MATCH_COUNT:
         src_pts = np.float32([ kp0[m.queryIdx].pt for m in good ])#.reshape(-1,1,2)
@@ -125,6 +115,6 @@ for i in range (1,1000):
     plt.scatter(x, data)
     fig.canvas.draw_idle()
     plt.pause(0.1)
-    cv2.waitKey(10)
+    cv2.waitKey(1)
 cap.release()
 cv2.destroyAllWindows()
