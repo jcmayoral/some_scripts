@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node pkg="costmap_2d" type="costmap_2d_node" respawn="false" name="costmap_node" output="screen" clear_params="true">
+        <rosparam file="$(find my_own_thorvald)/config/common/single_costmap.yaml" command="load"/>
+
+    </node>
+
+</launch>
