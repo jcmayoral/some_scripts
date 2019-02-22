@@ -10,12 +10,12 @@ from fusion_msgs.msg import sensorFusionMsg
 class SVMObserver:
     def __init__(self):
         rospy.init_node('svm_imu_test')
-        rospy.Subscriber('/android/imu', Imu, self.imuCB)
+        rospy.Subscriber('/VectorNav_IMU/imu', Imu, self.imuCB)
         self.is_training = True
         self.event_publisher = rospy.Publisher("/collisions_0", sensorFusionMsg, queue_size=10)
-        self.clf = OneClassSVM(nu=0.5, kernel="poly", gamma=0.1)
+        self.clf = OneClassSVM(nu=0.5, kernel="poly", gamma=0.3)
         rospy.loginfo("Training period starting")
-        rospy.Timer(rospy.Duration(30), self.timer_cb,oneshot=True)
+        rospy.Timer(rospy.Duration(10), self.timer_cb,oneshot=True)
         rospy.spin()
 
     def timer_cb(self, event):

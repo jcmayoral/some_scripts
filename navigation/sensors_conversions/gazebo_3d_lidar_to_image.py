@@ -7,7 +7,7 @@ global publisher
 
 
 def topic_cb(msg):
-    gen = pc2.read_points(msg, skip_nans=False, field_names=("x", "y", "z", ))
+    gen = pc2.read_points(msg, skip_nans=False, field_names=("x", "y", "z","intensity" ))
     transformed_image = Image()
     transformed_image.header.frame_id = "velodyne"
     transformed_image.height = msg.width/128
@@ -15,11 +15,13 @@ def topic_cb(msg):
     transformed_image.encoding = "mono8"
     data = [0] * transformed_image.height * transformed_image.width
 
-    scale_factor = 5
+    max_distance = 10 #max distance of lidar
+    min_distance = -0.05 #for some reason is negative
+    scale_factor = 1
 
     for i in range(transformed_image.height * transformed_image.width-1, -1, -1):
-        value = fabs(gen.next()[2])
-        data[i] = min(254, value*254/scale_factor)
+        value = gen.next()[2] - min_distance
+        data[i] = fabs(scale_factor * value*255/(max_distance - min_distance))
 
     transformed_image.data = data
     publisher.publish(transformed_image)
