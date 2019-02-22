@@ -9,10 +9,10 @@ class SVMObserver:
     def __init__(self):
         rospy.init_node('svm_imu_test')
         self.is_training = True
-        self.clf = OneClassSVM(nu=0.3, kernel="poly", gamma=0.2)
+        self.clf = OneClassSVM(nu=0.3, kernel="poly", gamma=0.1)
         self.sub = rospy.Subscriber('/Velodyne_Lidar/gps', Velodyne_Gps, self.imuCB, queue_size=1)
         rospy.loginfo("Training period starting")
-        rospy.Timer(rospy.Duration(10), self.timer_cb,oneshot=True)
+        rospy.Timer(rospy.Duration(30), self.timer_cb,oneshot=True)
         rospy.spin()
 
     def timer_cb(self, event):
