@@ -22,6 +22,8 @@ class Lidar2Image:
         self.max_value = 255
 
         self.size =  int(self.ray_number*self.ray_number)
+        self.transformed_image.data = [0] * self.size
+
         self.publisher = rospy.Publisher("/scan_velodyne_hack/image_raw", Image, queue_size=1)
         rospy.Subscriber("/velodyne_points", PointCloud2, self.topic_cb, queue_size=1)
         rospy.loginfo("Node initialized")
@@ -29,10 +31,9 @@ class Lidar2Image:
 
 
     def topic_cb(self,msg):
+        self.transformed_image.data = [0] * self.size
+
         gen = pc2.read_points(msg, skip_nans=False, field_names=("x", "y", "z","intensity" ))
-
-
-        data = [0] * self.size
 
         for i in range(self.size-1, -1, -1):
             try:
@@ -62,9 +63,9 @@ class Lidar2Image:
 
             index =  int(fabs(cell_x + self.ray_number * cell_y))
 
-            data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
+            self.transformed_image.data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
 
-        self.transformed_image.data = data
+        self.transformed_image.header.stamp = rospy.Time.now()
         self.publisher.publish(self.transformed_image)
 
 
