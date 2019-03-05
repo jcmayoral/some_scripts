@@ -10,15 +10,15 @@ class Lidar2Image:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 0.05
-        self.y_resolution = 0.05
+        self.x_resolution = 0.25
+        self.y_resolution = 0.25
 
         self.ray_number = 600
         self.transformed_image.height = self.ray_number
         self.transformed_image.width = self.ray_number
         self.transformed_image.encoding = "mono8"
 
-        self.max_distance = 20
+        self.min_distance = 150
         self.max_value = 255
 
         self.size =  int(self.ray_number*self.ray_number)
@@ -39,29 +39,30 @@ class Lidar2Image:
                 point = gen.next()
                 x = point[0]
                 y = point[1]
+                z = point[2]
+                intensity = point[3]
                 cell_x = round(x/self.x_resolution)
                 cell_y = round(y/self.y_resolution)
-                raw_value = point[3]/point[2]
+                feature = point[3]/point[2]
             except:
                 continue
-                print "NO"
 
-            if norm([x,y])> self.max_distance:
+            if norm([x,y])> self.min_distance:
                 continue
 
             cell_x = (self.ray_number/2) + cell_x
 
-            if cell_x > self.ray_number:
-                continue
+            #if cell_x > self.ray_number:
+            #    continue
 
             cell_y = (self.ray_number/2) + cell_y
 
-            if cell_y > self.ray_number:
-                continue
+            #if cell_y > self.ray_number:
+            #    continue
 
             index =  int(fabs(cell_x + self.ray_number * cell_y))
 
-            data[min(index, self.size -1)] = min(fabs(raw_value), self.max_value)
+            data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
 
         self.transformed_image.data = data
         self.publisher.publish(self.transformed_image)
