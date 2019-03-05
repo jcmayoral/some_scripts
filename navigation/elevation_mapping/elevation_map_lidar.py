@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import rospy
 import sensor_msgs.point_cloud2 as pc2
-from sensor_msgs.msg import PointCloud2, Image
+from sensor_msgs.msg import PointCloud2, Image, Imu
 from htf_velodyne_32e.msg import Velodyne_Gps
 from numpy import fabs,sqrt, floor
 from numpy.linalg import norm
@@ -29,10 +29,17 @@ class Lidar2ElevationMap:
 
         self.publisher = rospy.Publisher("/scan_velodyne_hack/image_raw", Image, queue_size=1)
         rospy.Subscriber("/velodyne_points", PointCloud2, self.topic_cb, queue_size=1)
-        rospy.Subscriber("/Velodyne_Lidar/gps", Velodyne_Gps, self.pose_cb, queue_size=1)
+        #rospy.Subscriber("/Velodyne_Lidar/gps", Velodyne_Gps, self.pose_cb, queue_size=1)
+        rospy.Subscriber("/VectorNav_IMU/imu", Imu, self.imu_cb, queue_size=1)
 
         rospy.loginfo("Node initialized")
         rospy.spin()
+
+    def imu_cb(self, msg):
+        self.robot_pose[0] += msg.linear_acceleration.x * 0.01
+        self.robot_pose[1] += msg.linear_acceleration.y * 0.01
+        print self.robot_pose
+
 
     def pose_cb(self, msg):
         if self.init_robot_pose is None:
@@ -40,6 +47,7 @@ class Lidar2ElevationMap:
             return
         self.robot_pose[0] += msg.latitude - self.init_robot_pose[0]
         self.robot_pose[1] += msg.longitude - self.init_robot_pose[1]
+        print self.robot_pose
 
 
     def topic_cb(self,msg):
@@ -71,7 +79,7 @@ class Lidar2ElevationMap:
 
             if cell_y > self.ray_number:
                 continue
-            print cell_x, cell_y
+
             index =  int(fabs(cell_x + self.ray_number * cell_y))
 
             self.transformed_image.data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
@@ -82,4 +90,4 @@ class Lidar2ElevationMap:
 
 
 if __name__ == '__main__':
-    Lidar2Lidar2ElevationMap()
+    Lidar2ElevationMap()
