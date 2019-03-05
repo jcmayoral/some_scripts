@@ -6,22 +6,21 @@ from numpy import fabs,sqrt, floor
 from numpy.linalg import norm
 global publisher
 
-
 def topic_cb(msg):
+    global last_data
     gen = pc2.read_points(msg, skip_nans=False, field_names=("x", "y", "z","intensity" ))
     transformed_image = Image()
     transformed_image.header.frame_id = "velodyne"
     x_resolution = 0.1
     y_resolution = 0.1
-    ray_number = 600#int(3 / x_resolution)#220
-    print ray_number
+    ray_number = 800#int(3 / x_resolution)#220
     size =  msg.height * msg.width
     transformed_image.height = ray_number#fabs(floor(sqrt(size)))#
     transformed_image.width = ray_number#fabs(floor(sqrt(size)))#
     size =  int(transformed_image.height * transformed_image.width)
 
     transformed_image.encoding = "mono8"
-    data = [0] * transformed_image.height * transformed_image.width
+    data = [0] * size
 
     max_distance = 25 #max distance of lidar
     min_distance = -3.5#-0.05 #for some reason is negative
@@ -38,13 +37,13 @@ def topic_cb(msg):
             y = point[1]
             cell_x = round(x/x_resolution)
             cell_y = round(y/y_resolution)
-            raw_value = gen.next()[2]
+            raw_value = point[3]/point[2]
         except:
             continue
             print "NO"
 
-        #print raw_value
-        value = min(fabs(raw_value / (max_distance- min_distance))*max_value, max_value)
+        value = raw_value
+        #value = min(fabs(raw_value / (max_distance- min_distance))*max_value, max_value)
         #value = 100
         #if raw_value > -1:
         #    value = max_value
@@ -54,14 +53,14 @@ def topic_cb(msg):
 
         if cell_x > transformed_image.height:
             cell_x = cell_x - transformed_image.height
-            miscalculation = miscalculation+1
+            miscalculation_x = miscalculation+1
             continue
 
         cell_y = (transformed_image.width/2) + cell_y
 
         if cell_y > transformed_image.width:
             cell_y = cell_y - transformed_image.width
-            miscalculation = miscalculation+1
+            miscalculation_y = miscalculation+1
             continue
 
         index =  int(fabs(cell_x + transformed_image.width * cell_y))
@@ -70,7 +69,7 @@ def topic_cb(msg):
 
         #data[i] = min(fabs(value), max_value)
     print "total ignored points ", ignored_points
-    print "total miscalculation points ", miscalculation
+    print "total miscalculation points  " , miscalculation_x, miscalculation_y
     transformed_image.data = data
     publisher.publish(transformed_image)
 
