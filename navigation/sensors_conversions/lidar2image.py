@@ -10,18 +10,19 @@ class Lidar2Image:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 0.25
-        self.y_resolution = 0.25
+        self.x_resolution = 3
+        self.y_resolution = 3
 
-        self.ray_number = 600
-        self.transformed_image.height = self.ray_number
-        self.transformed_image.width = self.ray_number
+        self.pixels_number = 600
+        self.transformed_image.height = self.pixels_number
+        self.transformed_image.width = self.pixels_number
         self.transformed_image.encoding = "mono8"
 
-        self.min_distance = 150
+        self.min_distance = self.pixels_number * norm([self.x_resolution, self.y_resolution])
+        rospy.loginfo("Distance limited to %f" % self.min_distance)
         self.max_value = 255
 
-        self.size =  int(self.ray_number*self.ray_number)
+        self.size =  int(self.pixels_number*self.pixels_number)
         self.transformed_image.data = [0] * self.size
 
         self.publisher = rospy.Publisher("/scan_velodyne_hack/image_raw", Image, queue_size=1)
@@ -42,8 +43,8 @@ class Lidar2Image:
                 y = point[1]
                 z = point[2]
                 intensity = point[3]
-                cell_x = round(x/self.x_resolution)
-                cell_y = round(y/self.y_resolution)
+                cell_x = round(x*self.x_resolution)
+                cell_y = round(y*self.y_resolution)
                 feature = point[3]/point[2]
             except:
                 continue
@@ -51,19 +52,21 @@ class Lidar2Image:
             if norm([x,y])> self.min_distance:
                 continue
 
-            cell_x = (self.ray_number/2) + cell_x
+            cell_x = (self.pixels_number/2) + cell_x
 
             #if cell_x > self.ray_number:
             #    continue
 
-            cell_y = (self.ray_number/2) + cell_y
+            cell_y = (self.pixels_number/2) + cell_y
 
             #if cell_y > self.ray_number:
             #    continue
 
-            index =  int(fabs(cell_x + self.ray_number * cell_y))
+            index =  int(fabs(cell_x + self.pixels_number * cell_y))
+            if self.size - index < 0:
+                return
 
-            self.transformed_image.data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
+            self.transformed_image.data[index] = min(fabs(feature), self.max_value)
 
         self.transformed_image.header.stamp = rospy.Time.now()
         self.publisher.publish(self.transformed_image)
