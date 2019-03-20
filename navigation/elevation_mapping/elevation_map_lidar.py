@@ -11,8 +11,8 @@ class Lidar2ElevationMap:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 0.25
-        self.y_resolution = 0.25
+        self.x_resolution = 3
+        self.y_resolution = 3
 
         self.ray_number = 600
         self.transformed_image.height = self.ray_number
@@ -69,13 +69,12 @@ class Lidar2ElevationMap:
             if norm([x,y])> self.min_distance:
                 continue
 
-            cell_x = int(fabs(self.robot_pose[0]/self.x_resolution + cell_x)) #+ self.ray_number/2
-
+            cell_x = int(fabs(self.robot_pose[0]/self.x_resolution + cell_x))
 
             if cell_x > self.ray_number:
                 continue
 
-            cell_y = int(fabs(self.robot_pose[1]/self.y_resolution + cell_y)) #+  self.ray_number/2
+            cell_y = int(fabs(self.robot_pose[1]/self.y_resolution + cell_y))
 
             if cell_y > self.ray_number:
                 continue

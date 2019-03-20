@@ -10,16 +10,14 @@ class Lidar2Image:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 3
-        self.y_resolution = 3
+        self.x_resolution = 8
+        self.y_resolution = 8
 
-        self.pixels_number = 600
+        self.pixels_number = 400
         self.transformed_image.height = self.pixels_number
         self.transformed_image.width = self.pixels_number
         self.transformed_image.encoding = "mono8"
 
-        self.min_distance = self.pixels_number * norm([self.x_resolution, self.y_resolution])
-        rospy.loginfo("Distance limited to %f" % self.min_distance)
         self.max_value = 255
 
         self.size =  int(self.pixels_number*self.pixels_number)
@@ -47,9 +45,6 @@ class Lidar2Image:
                 cell_y = round(y*self.y_resolution)
                 feature = point[3]/point[2]
             except:
-                continue
-
-            if norm([x,y])> self.min_distance:
                 continue
 
             cell_x = (self.pixels_number/2) + cell_x
