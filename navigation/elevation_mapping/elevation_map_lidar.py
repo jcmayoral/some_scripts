@@ -4,15 +4,17 @@ import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, Image, Imu
 from htf_velodyne_32e.msg import Velodyne_Gps
 from numpy import fabs,sqrt, floor
+from math import cos, sin
 from numpy.linalg import norm
+from tf.transformations import euler_from_quaternion
 
 class Lidar2ElevationMap:
     def __init__(self):
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 3
-        self.y_resolution = 3
+        self.x_resolution = 0.1
+        self.y_resolution = 0.1
 
         self.ray_number = 600
         self.transformed_image.height = self.ray_number
@@ -23,6 +25,7 @@ class Lidar2ElevationMap:
         self.max_value = 255
         self.robot_pose = [0,0]
         self.init_robot_pose = None
+        self.last_angle = 0.0
 
         self.size =  int(self.ray_number*self.ray_number)
         self.transformed_image.data = [0] * self.size
@@ -36,9 +39,11 @@ class Lidar2ElevationMap:
         rospy.spin()
 
     def imu_cb(self, msg):
-        self.robot_pose[0] += msg.linear_acceleration.x * 0.01
-        self.robot_pose[1] += msg.linear_acceleration.y * 0.01
+        angle = euler_from_quaternion([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])[2]
+        self.robot_pose[0] += msg.linear_acceleration.x  * cos(angle-self.last_angle)
+        self.robot_pose[1] += msg.linear_acceleration.y  * sin(angle-self.last_angle)
         print self.robot_pose
+        self.last_angle = angle
 
 
     def pose_cb(self, msg):
@@ -81,6 +86,7 @@ class Lidar2ElevationMap:
 
             index =  int(fabs(cell_x + self.ray_number * cell_y))
 
+            feature = 1+self.transformed_image.data[min(index, self.size -1)]
             self.transformed_image.data[min(index, self.size -1)] = min(fabs(feature), self.max_value)
 
         self.transformed_image.header.stamp = rospy.Time.now()

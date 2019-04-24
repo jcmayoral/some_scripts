@@ -17,11 +17,11 @@ class SVMObserver:
         self.clf = list()
 
         for i in range(4):
-            self.clf.append(OneClassSVM(nu=0.3, kernel="poly", gamma=0.1))
+            self.clf.append(OneClassSVM(nu=0.4, kernel="poly", gamma=0.4))
             self.pub.append(rospy.Publisher('/observer_'+ str(i), sensorFusionMsg,queue_size=1))
 
         rospy.loginfo("Training period starting")
-        rospy.Timer(rospy.Duration(20), self.timer_cb,oneshot=True)
+        rospy.Timer(rospy.Duration(30), self.timer_cb,oneshot=True)
         rospy.spin()
 
     def timer_cb(self, event):

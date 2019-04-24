@@ -10,10 +10,10 @@ class Lidar2Image:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 8
-        self.y_resolution = 8
+        self.x_resolution = 1
+        self.y_resolution = 1
 
-        self.pixels_number = 400
+        self.pixels_number = 250
         self.transformed_image.height = self.pixels_number
         self.transformed_image.width = self.pixels_number
         self.transformed_image.encoding = "mono8"
@@ -59,6 +59,7 @@ class Lidar2Image:
 
             index =  int(fabs(cell_x + self.pixels_number * cell_y))
             if self.size - index < 0:
+                print "error"
                 return
 
             self.transformed_image.data[index] = min(fabs(feature), self.max_value)
