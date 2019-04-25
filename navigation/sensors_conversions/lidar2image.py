@@ -10,18 +10,19 @@ class Lidar2Image:
         rospy.init_node("lidar_to_image")
         self.transformed_image = Image()
         self.transformed_image.header.frame_id = "velodyne"
-        self.x_resolution = 4
-        self.y_resolution = 4
+        self.x_resolution = 10
+        self.y_resolution = 10
 
-        self.pixels_number = 250
+        self.pixels_number = 500
         self.transformed_image.height = self.pixels_number
         self.transformed_image.width = self.pixels_number
         self.transformed_image.encoding = "mono8"
 
         self.max_value = 255
+        self.step = 25
 
         self.size =  int(self.pixels_number*self.pixels_number)
-        self.transformed_image.data = [0] * self.size
+        self.transformed_image.data = [255] * self.size
 
         self.publisher = rospy.Publisher("/scan_velodyne_hack/image_raw", Image, queue_size=1)
         rospy.Subscriber("/velodyne_points/filtered", PointCloud2, self.topic_cb, queue_size=1)
@@ -60,6 +61,12 @@ class Lidar2Image:
                 print "error"
                 return
 
+            if (z*z + x*x + y*y)== 0:
+                continue
+            probability = fabs(1 /( z*z + x*x + y*y))
+            feature = 1/(fabs(probability) * self.transformed_image.data[index])
+
+            feature = feature * self.max_value
             self.transformed_image.data[index] = min(fabs(feature), self.max_value)
 
         self.transformed_image.header.stamp = rospy.Time.now()
