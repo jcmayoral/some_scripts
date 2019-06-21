@@ -2,7 +2,7 @@ import fastText
 import string
 
 m = fastText.load_model('robocup_actions.bin')
-sentence = raw_input("Enter sentence to query...")
+sentence = input("Enter sentence to query...")
 result = m.predict(sentence)
 action = str(result[0])
 action = action.replace("'", "")
