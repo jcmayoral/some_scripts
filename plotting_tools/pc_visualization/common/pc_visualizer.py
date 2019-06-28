@@ -4,12 +4,15 @@ import ctypes as ct
 import cv2
 import sys
 import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 showsz=800
 mousex,mousey=0.5,0.5
 zoom=1.0
 reset = False
 changed=True
+
+
 def onmouse(*args):
     global mousex,mousey,changed
     y=args[1]
@@ -17,10 +20,6 @@ def onmouse(*args):
     mousex=x/float(showsz)
     mousey=y/float(showsz)
     changed=True
-cv2.namedWindow('show3d')
-cv2.moveWindow('show3d',0,0)
-#cv2.setMouseCallback('show3d',onmouse)
-
 
 
 class PointInfo:
@@ -35,7 +34,6 @@ class PointInfo:
 
 def render_ball(h, w, show, n , xyzs_list, c0, c1, c2, r):
 #void render_ball(int h,int w,unsigned char * show,int n,int * xyzs,float * c0,float * c1,float * c2,int r){
-    print r
     r=np.maximum(r,1);
     #vector<int> depth(h*w,-2100000000);
     depth = np.zeros(h*w)
@@ -86,6 +84,10 @@ def trigger_reset():
 
 def showpoints(xyz,c_gt=None, c_pred = None ,waittime=0,showrot=False,magnifyBlue=0,freezerot=False,background=(0,0,0),normalizecolor=True,ballradius=10):
     global showsz,mousex,mousey,zoom,changed, reset
+    cv2.namedWindow('show3d')
+    cv2.moveWindow('show3d',0,0)
+    cv2.setMouseCallback('show3d',onmouse)
+
     xyz=xyz-xyz.mean(axis=0)
     radius=((xyz**2).sum(axis=-1)**0.5).max()
     xyz/=(radius*2.2)/showsz
@@ -219,6 +221,14 @@ def showpoints(xyz,c_gt=None, c_pred = None ,waittime=0,showrot=False,magnifyBlu
         if waittime!=0:
             break
     return
+
+
+
+"""
 if __name__=='__main__':
+
+    #cv2.setMouseCallback('show3d',onmouse)
+
     np.random.seed(100)
     showpoints(np.random.randn(2500,3))
+"""
