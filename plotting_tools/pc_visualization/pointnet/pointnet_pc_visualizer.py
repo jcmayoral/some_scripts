@@ -8,6 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 showsz=800
 mousex,mousey=0.5,0.5
 zoom=1.0
+reset = False
 changed=True
 def onmouse(*args):
     global mousex,mousey,changed
@@ -18,7 +19,7 @@ def onmouse(*args):
     changed=True
 cv2.namedWindow('show3d')
 cv2.moveWindow('show3d',0,0)
-cv2.setMouseCallback('show3d',onmouse)
+#cv2.setMouseCallback('show3d',onmouse)
 
 
 
@@ -80,8 +81,11 @@ def render_ball(h, w, show, n , xyzs_list, c0, c1, c2, r):
                 show[x2][y2][2]=pattern[j].r*c1[i]*intensity
 #dll=np.ctypeslib.load_library(os.path.join(BASE_DIR, 'render_balls_so'),'.')
 
+def trigger_reset():
+    reset = True
+
 def showpoints(xyz,c_gt=None, c_pred = None ,waittime=0,showrot=False,magnifyBlue=0,freezerot=False,background=(0,0,0),normalizecolor=True,ballradius=10):
-    global showsz,mousex,mousey,zoom,changed
+    global showsz,mousex,mousey,zoom,changed, reset
     xyz=xyz-xyz.mean(axis=0)
     radius=((xyz**2).sum(axis=-1)**0.5).max()
     xyz/=(radius*2.2)/showsz
@@ -156,6 +160,7 @@ def showpoints(xyz,c_gt=None, c_pred = None ,waittime=0,showrot=False,magnifyBlu
             cv2.putText(show,'yangle %d'%(int(yangle/np.pi*180)),(30,showsz-50),0,0.5,cv2.cv.CV_RGB(255,0,0))
             cv2.putText(show,'zoom %d%%'%(int(zoom*100)),(30,showsz-70),0,0.5,cv2.cv.CV_RGB(255,0,0))
     changed=True
+    flag = False
     while True:
         if changed:
             render()
@@ -213,7 +218,7 @@ def showpoints(xyz,c_gt=None, c_pred = None ,waittime=0,showrot=False,magnifyBlu
             cv2.imwrite('show3d.png',show)
         if waittime!=0:
             break
-    return cmd
+    return
 if __name__=='__main__':
     np.random.seed(100)
     showpoints(np.random.randn(2500,3))
