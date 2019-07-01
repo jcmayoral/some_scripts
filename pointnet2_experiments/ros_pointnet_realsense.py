@@ -1,7 +1,8 @@
 # First import the library
 
 from common.ros_publisher import PointCloudPublisher
-from common.copy_pointnet_eval import call, stop_call
+#from common.copy_pointnet_eval import call, stop_call
+from common.pointnet2_class import ROSPointNet2
 import pyrealsense2 as rs
 import numpy as np
 import cv2
@@ -26,6 +27,8 @@ rs_pc = rs.pointcloud()
 
 publisher = PointCloudPublisher("/pointnet2/input")
 
+ros_pointnet2 = ROSPointNet2()
+
 try:
     while 1:
         # Create a pipeline object. This object configures the streaming camera and owns it's handle
@@ -37,23 +40,24 @@ try:
         v = points.get_vertices()
         verts = np.asanyarray(v).view(np.float32).reshape(-1, 3)  # xyz
 
+
+        """
         p = pcl.PointCloud()
         p.from_array(np.array(verts,dtype=np.float32))
         sor = p.make_voxel_grid_filter()
-        sor.set_leaf_size(0.1, 0.1, 0.1)
+        sor.set_leaf_size(0.05<w, 0.05, 0.05)
         cloud_filtered = sor.filter()
 
         pc = cloud_filtered.to_array()
         #print "after filtering ", pc.shape
-
         call(pc)
-        #call(verts)
         publisher.custom_publish(pc, frame_id = "camera")
-        rospy.sleep(3)
-        print "f"
+        """
+
+        ros_pointnet2.call(verts)
+        publisher.custom_publish(verts, frame_id = "camera")
+        rospy.sleep(1)
 
 finally:
-    stop_call()
-    print "g"
+    ros_pointnet2.stop_call()
     pipeline.stop()
-    print "h"

@@ -58,4 +58,3 @@ class PointCloudPublisher(rospy.Publisher):
         self.publish(pc2)
 
         """
-        print "e"
