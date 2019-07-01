@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--model', default='pointnet2_cls_ssg', help='Model name. [default: pointnet2_cls_ssg]')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training [default: 16]')
-parser.add_argument('--num_point', type=int, default=1024, help='Point Number [256/512/1024/2048] [default: 1024]')
+parser.add_argument('--num_point', type=int, default=100, help='Point Number [256/512/1024/2048] [default: 1024]')
 parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
 parser.add_argument('--dump_dir', default='dump', help='dump folder path [dump]')
 parser.add_argument('--normal', action='store_true', help='Whether to use normal information')
@@ -68,6 +68,9 @@ def log_string(out_str):
     LOG_FOUT.flush()
     print(out_str)
 
+def stop_call():
+    LOG_FOUT.close()
+
 def evaluate(num_votes, data):
     is_training = False
 
@@ -101,7 +104,6 @@ def evaluate(num_votes, data):
            'pred': pred,
            'loss': total_loss}
 
-    print "here " , data
     eval_one_time(sess, ops, num_votes, 1, data)
 
 def eval_one_time(sess, ops, num_votes=1, topk=1, data=0):
@@ -122,7 +124,6 @@ def eval_one_time(sess, ops, num_votes=1, topk=1, data=0):
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
 
-    print type(data)
     batch_data, batch_label = data, 4#TEST_DATASET.next_batch(augment=False)
     bsize = batch_data.shape[0]
 
@@ -173,8 +174,6 @@ def eval_one_time(sess, ops, num_votes=1, topk=1, data=0):
 def call(input):
     with tf.Graph().as_default():
         evaluate(num_votes=FLAGS.num_votes+3, data=input)
-    LOG_FOUT.close()
-
 
 if __name__=='__main__':
     call()
