@@ -51,7 +51,8 @@ if __name__ == '__main__':
     #print pc['label'][0]
     c = 0
     while True:
-        while pc['label'][c] != 25:
+        selected_class = int(raw_input("Search for class"))
+        while pc['label'][c] != selected_class:
             c = c+1
             if c > len(pc['label']):
                 break

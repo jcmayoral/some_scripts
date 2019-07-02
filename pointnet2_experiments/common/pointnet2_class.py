@@ -12,6 +12,7 @@ import time
 import os
 import scipy.misc
 import sys
+import heapq
 BASE_DIR = "/home/jose/experiments_ws/pointnet2"
 ROOT_DIR = BASE_DIR
 sys.path.append(BASE_DIR)
@@ -105,7 +106,6 @@ class ROSPointNet2:
         is_training = False
 
         # Make sure batch data is of same size
-        print data.shape
         #cur_batch_data = np.zeros((BATCH_SIZE,NUM_POINT,TEST_DATASET.num_channel()))
         #cur_batch_label = np.zeros((BATCH_SIZE), dtype=np.int32)
         cur_batch_data = np.zeros((1, data.shape[0], data.shape[1]))
@@ -128,6 +128,7 @@ class ROSPointNet2:
         cur_batch_label[0] = batch_label
 
         batch_pred_sum = np.zeros((self.BATCH_SIZE, self.NUM_CLASSES)) # score for classes
+
         for vote_idx in range(self.NUM_VOTES):
             # Shuffle point order to achieve different farthest samplings
             shuffled_indices = np.arange(self.NUM_POINT)
@@ -143,14 +144,15 @@ class ROSPointNet2:
                          self.ops['is_training_pl']: is_training}
             loss_val, pred_val = self.sess.run([self.ops['loss'], self.ops['pred']], feed_dict=feed_dict)
             batch_pred_sum += pred_val
+        min_pred_val = np.argmin(batch_pred_sum, 1)
         pred_val = np.argmax(batch_pred_sum, 1)
-        print pred_val
-        correct = np.sum(pred_val == batch_label)
-        total_correct += correct
-        total_seen += bsize
-        loss_sum += loss_val
-        batch_idx += 1
-        print self.SHAPE_NAMES[pred_val[0]]
+        batch_pred_sum[0][pred_val[0]] = -100000000000000000000
+        second_pred_val = np.argmax(batch_pred_sum, 1)
+        batch_pred_sum[0][second_pred_val[0]] = -100000000000000000000
+        third_pred_val = np.argmax(batch_pred_sum, 1)
+
+        #print heapq.nlargest(3, range(len(batch_pred_sum)), batch_pred_sum.take)
+        print self.SHAPE_NAMES[pred_val[0]], self.SHAPE_NAMES[second_pred_val[0]], self.SHAPE_NAMES[third_pred_val[0]], self.SHAPE_NAMES[min_pred_val[0]]
         """
         for i in range(bsize):
             l = batch_label[i]
