@@ -1,5 +1,4 @@
 # First import the library
-
 from common.ros_publisher import PointCloudPublisher
 #from common.copy_pointnet_eval import call, stop_call
 from common.pointnet2_class import ROSPointNet2
@@ -28,8 +27,10 @@ pipeline.start()
 #depth_scale = depth_sensor.get_depth_scale()
 #print
 
-publisher = PointCloudPublisher("/pointnet2/input")
-ros_pointnet2 = ROSPointNet2()
+num_point = 300
+original_publisher = PointCloudPublisher("/pointnet2/input")
+publisher = PointCloudPublisher("/pointnet2/output")
+ros_pointnet2 = ROSPointNet2(num_point=num_point)
 
 def keyboardInterruptHandler(signal, frame):
     global ros_pointnet2
@@ -44,41 +45,41 @@ signal.signal(signal.SIGINT, keyboardInterruptHandler)
 
 while True:
         # Create a pipeline object. This object configures the streaming camera and owns it's handle
-        rospy.logerr("New pointcloud")
         frames = pipeline.wait_for_frames()
         depth_frame = frames.get_depth_frame()
         color_frame = frames.get_color_frame()
         rs_pc = rs.pointcloud()
-        print rs_pc
         points = rs_pc.calculate(depth_frame)
         v = points.get_vertices()
         verts = np.asanyarray(v).view(np.float32).reshape(-1, 3)  # xyz
         p = pcl.PointCloud()
         p.from_array(np.array(verts,dtype=np.float32))
 
+        original_publisher.custom_publish(verts, frame_id = "camera")
 
-        print "original", p.size
+
+        #print "original", p.size
         #Downsampling
         sor = p.make_voxel_grid_filter()
         sor.set_leaf_size(0.075, 0.075, 0.075)
         cloud_filtered = sor.filter()
-        print "after Downsampling", cloud_filtered.size
+        #print "after Downsampling", cloud_filtered.size
 
 
         #Passtrough filter
         passthrough = cloud_filtered.make_passthrough_filter()
         #passthrough = p.make_passthrough_filter()
         passthrough.set_filter_field_name("z")
-        passthrough.set_filter_limits(0.0, 3.0)
+        passthrough.set_filter_limits(0.0, 2.0)
         cloud_filtered = passthrough.filter()
-        print "after passthrough", cloud_filtered.size
+        #print "after passthrough", cloud_filtered.size
 
         #cluster extraction
         tree = cloud_filtered.make_kdtree()
         ec = cloud_filtered.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.1)
-        ec.set_MinClusterSize(150)
-        ec.set_MaxClusterSize(200)
+        ec.set_ClusterTolerance(0.2)
+        ec.set_MinClusterSize(num_point)
+        ec.set_MaxClusterSize(num_point*1.5)
         ec.set_SearchMethod(tree)
         cluster_indices = ec.Extract()
 
@@ -111,7 +112,7 @@ while True:
 
         for j, indices in enumerate(cluster_indices):
             # cloudsize = indices
-            print('indices = ' + str(len(indices)))
+            #print('indices = ' + str(len(indices)))
             # cloudsize = len(indices)
             points = np.zeros((len(indices), 3), dtype=np.float32)
             # points = np.zeros((cloudsize, 3), dtype=np.float32)

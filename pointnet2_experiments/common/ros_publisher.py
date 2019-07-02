@@ -16,7 +16,6 @@ class PointCloudPublisher(rospy.Publisher):
         if frame_id:
             msg.header.frame_id = frame_id
 
-        print points.shape
         if len(points.shape) == 3:
             msg.height = points.shape[1]
             msg.width = points.shape[0]

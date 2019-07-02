@@ -1,7 +1,6 @@
 #!/usr/bin/python
 '''
     Evaluate classification performance with optional voting.
-    Will use H5 dataset in default. If using normal, will shift to the normal dataset.
 '''
 import tensorflow as tf
 import numpy as np
@@ -23,13 +22,13 @@ import modelnet_dataset
 import modelnet_h5_dataset
 
 class ROSPointNet2:
-    def __init__(self):
+    def __init__(self, num_point=50):
         #TODO ROS PARAMS
         parser = argparse.ArgumentParser()
         parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
         parser.add_argument('--model', default='pointnet2_cls_ssg', help='Model name. [default: pointnet2_cls_ssg]')
         parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training [default: 16]')
-        parser.add_argument('--num_point', type=int, default=150, help='Point Number [256/512/1024/2048] [default: 1024]')
+        #parser.add_argument('--num_point', type=int, default=150, help='Point Number [256/512/1024/2048] [default: 1024]')
         parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
         parser.add_argument('--dump_dir', default='dump', help='dump folder path [dump]')
         parser.add_argument('--normal', action='store_true', help='Whether to use normal information')
@@ -39,7 +38,7 @@ class ROSPointNet2:
 
         self.is_initialize = False
         self.BATCH_SIZE = FLAGS.batch_size
-        self.NUM_POINT = FLAGS.num_point
+        self.NUM_POINT = num_point
         self.MODEL_PATH = FLAGS.model_path
         self.GPU_INDEX = FLAGS.gpu
         self.NUM_VOTES = FLAGS.num_votes
@@ -56,12 +55,12 @@ class ROSPointNet2:
         open(os.path.join(ROOT_DIR, 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))]
         HOSTNAME = socket.gethostname()
         # Shapenet official train/test split
-        print "PATH ", os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt')
+        #print "PATH ", os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt')
 
     def log_string(self,out_str):
         self.LOG_FOUT.write(out_str+'\n')
         self.LOG_FOUT.flush()
-        print(out_str)
+        #print(out_str)
 
     def stop_call(self):
         self.LOG_FOUT.close()
@@ -122,7 +121,7 @@ class ROSPointNet2:
         batch_data, batch_label = data, 4#TEST_DATASET.next_batch(augment=False)
         bsize = batch_data.shape[0]
 
-        print('Batch: %03d, batch size: %d'%(batch_idx, bsize))
+        #print('Batch: %03d, batch size: %d'%(batch_idx, bsize))
         # for the last batch in the epoch, the bsize:end are from last batch
         cur_batch_data[0:bsize,...] = batch_data
         cur_batch_label[0] = batch_label
