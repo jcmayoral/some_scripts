@@ -2,6 +2,7 @@
 from common.ros_publisher import PointCloudPublisher
 #from common.copy_pointnet_eval import call, stop_call
 from common.pointnet2_class import ROSPointNet2
+from common.part_seg_pointnet2_class import ROSPartSegPointNet2
 import pyrealsense2 as rs
 import numpy as np
 import cv2
@@ -10,6 +11,7 @@ import pcl
 import matplotlib.pyplot as plt
 import signal
 import random
+import copy
 
 from scipy.linalg import svd
 
@@ -27,10 +29,13 @@ pipeline.start()
 #depth_scale = depth_sensor.get_depth_scale()
 #print
 
-num_point = 300
+num_point = 256
 original_publisher = PointCloudPublisher("/pointnet2/input")
 publisher = PointCloudPublisher("/pointnet2/output")
+
 ros_pointnet2 = ROSPointNet2(num_point=num_point)
+#ros_pointnet2 = ROSPartSegPointNet2(num_point=num_point)
+
 
 def keyboardInterruptHandler(signal, frame):
     global ros_pointnet2
@@ -55,13 +60,10 @@ while True:
         p = pcl.PointCloud()
         p.from_array(np.array(verts,dtype=np.float32))
 
-        original_publisher.custom_publish(verts, frame_id = "camera")
-
-
         #print "original", p.size
         #Downsampling
         sor = p.make_voxel_grid_filter()
-        sor.set_leaf_size(0.075, 0.075, 0.075)
+        sor.set_leaf_size(0.05, 0.05, 0.05)
         cloud_filtered = sor.filter()
         #print "after Downsampling", cloud_filtered.size
 
@@ -70,16 +72,18 @@ while True:
         passthrough = cloud_filtered.make_passthrough_filter()
         #passthrough = p.make_passthrough_filter()
         passthrough.set_filter_field_name("z")
-        passthrough.set_filter_limits(0.0, 2.0)
+        passthrough.set_filter_limits(0.0, 5.0)
         cloud_filtered = passthrough.filter()
         #print "after passthrough", cloud_filtered.size
+
+        original_publisher.custom_publish(cloud_filtered.to_array(), frame_id = "camera")
 
         #cluster extraction
         tree = cloud_filtered.make_kdtree()
         ec = cloud_filtered.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.2)
+        ec.set_ClusterTolerance(0.8)
         ec.set_MinClusterSize(num_point)
-        ec.set_MaxClusterSize(num_point*1.5)
+        ec.set_MaxClusterSize(num_point*2)
         ec.set_SearchMethod(tree)
         cluster_indices = ec.Extract()
 
@@ -111,10 +115,15 @@ while True:
         #CLUSTERING
 
         for j, indices in enumerate(cluster_indices):
+            print "cluster ", j, " size ", len(indices)
             # cloudsize = indices
             #print('indices = ' + str(len(indices)))
             # cloudsize = len(indices)
             points = np.zeros((len(indices), 3), dtype=np.float32)
+
+            #XYZ Plus normals
+            #points = np.zeros((len(indices), 6), dtype=np.float32)
+
             # points = np.zeros((cloudsize, 3), dtype=np.float32)
 
             # for indice in range(len(indices)):
@@ -124,10 +133,15 @@ while True:
                 points[i][0] = cloud_filtered[indice][0]
                 points[i][1] = cloud_filtered[indice][1]
                 points[i][2] = cloud_filtered[indice][2]
-            ros_pointnet2.call(points)
             publisher.custom_publish(points, frame_id = "camera")
-            rospy.sleep(2)
-            #cloud_cluster.from_array(points)
+
+            prepared_points = copy.deepcopy(points)
+            for i in range(1024/num_point -2):
+                prepared_points = np.vstack((prepared_points, points))
+            print prepared_points.shape
+            ros_pointnet2.call(prepared_points)
+            rospy.sleep(0.5)
+        #cloud_cluster.from_array(points)
 
 
 rospy.logerr("ENDING")

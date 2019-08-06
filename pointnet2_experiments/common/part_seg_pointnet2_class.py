@@ -18,23 +18,22 @@ sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 import provider
-import modelnet_dataset
-import modelnet_h5_dataset
-from colorama import Fore, Back, Style
+#import modelnet_dataset
+#import modelnet_h5_dataset
 
-
-class ROSPointNet2:
-    def __init__(self, num_point=50):
+class ROSPartSegPointNet2:
+    def __init__(self, num_point=1):
         #TODO ROS PARAMS
         parser = argparse.ArgumentParser()
         parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
-        parser.add_argument('--model', default='pointnet2_cls_ssg', help='Model name. [default: pointnet2_cls_ssg]')
+        #parser.add_argument('--model', default='pointnet2_cls_ssg', help='Model name. [default: pointnet2_cls_ssg]')
         parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training [default: 16]')
         #parser.add_argument('--num_point', type=int, default=150, help='Point Number [256/512/1024/2048] [default: 1024]')
-        parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
+        model = "pointnet2_part_seg"
+        parser.add_argument('--model_path', default='part_log/model.ckpt', help='model checkpoint file path [default: part_log/model.ckpt]')
         parser.add_argument('--dump_dir', default='dump', help='dump folder path [dump]')
         parser.add_argument('--normal', action='store_true', help='Whether to use normal information')
-        parser.add_argument('--num_votes', type=int, default=1, help='Aggregate classification scores from multiple rotations [default: 1]')
+        parser.add_argument('--num_votes', type=int, default=12, help='Aggregate classification scores from multiple rotations [default: 1]')
         FLAGS = parser.parse_args()
         self.is_initialize = False
 
@@ -44,20 +43,31 @@ class ROSPointNet2:
         self.MODEL_PATH = FLAGS.model_path
         self.GPU_INDEX = FLAGS.gpu
         self.NUM_VOTES = FLAGS.num_votes
-        self.MODEL = importlib.import_module(FLAGS.model) # import network module
+        self.MODEL = importlib.import_module(model) # import network module
         self.DUMP_DIR = FLAGS.dump_dir
         self.NORMAL = FLAGS.normal
 
         if not os.path.exists(self.DUMP_DIR): os.mkdir(self.DUMP_DIR)
-        self.LOG_FOUT = open(os.path.join(self.DUMP_DIR, 'log_evaluate.txt'), 'w')
+        #os.system('cp %s %s' % (MODEL_FILE, LOG_DIR)) # bkp of model def
+        #os.system('cp train.py %s' % (LOG_DIR)) # bkp of train procedure
+        self.LOG_FOUT = open(os.path.join(self.DUMP_DIR, 'part_log_evaluate.txt'), 'w')
         self.LOG_FOUT.write(str(FLAGS)+'\n')
-        self.NUM_CLASSES = 40
+        self.NUM_CLASSES = 50
 
-        self.SHAPE_NAMES = [line.rstrip() for line in \
-        open(os.path.join(ROOT_DIR, 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))]
-        HOSTNAME = socket.gethostname()
+
+
+        self.seg_classes = ['Earphone','Motorbike','Rocket','Car','Laptop','Cap','Skateboard','Mug','Guitar','Bag','Lamp','Table','Airplane','Pistol','Chair', 'Knife']
+
+
+        #self.SHAPE_NAMES = [line.rstrip() for line in \
+        #open(os.path.join(ROOT_DIR, 'data/modelnet40_ply_hdf5_2048/shape_names.txt'))]
+        #HOSTNAME = socket.gethostname()
         # Shapenet official train/test split
         #print "PATH ", os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt')
+        #self.DATA_PATH = os.path.join(ROOT_DIR, 'data', 'shapenetcore_partanno_segmentation_benchmark_v0_normal')
+        #self.TEST_DATASET = part_dataset_all_normal.PartNormalDataset(root=DATA_PATH, npoints=NUM_POINT, classification=False, split='test')
+
+
 
     def log_string(self,out_str):
         self.LOG_FOUT.write(out_str+'\n')
@@ -75,18 +85,13 @@ class ROSPointNet2:
 
                 # simple model
                 pred, end_points = self.MODEL.get_model(pointclouds_pl, is_training_pl)
-                self.MODEL.get_loss(pred, labels_pl, end_points)
-                losses = tf.get_collection('losses')
-                total_loss = tf.add_n(losses, name='total_loss')
-
-                # Add ops to save and restore all the variables.
+                loss=self.MODEL.get_loss(pred, labels_pl)
                 self.saver = tf.train.Saver()
 
             # Create a session
             self.config = tf.ConfigProto()
             self.config.gpu_options.allow_growth = True
             self.config.allow_soft_placement = True
-            self.config.log_device_placement = False
             self.sess = tf.Session(config=self.config)
 
             # Restore variables from disk.
@@ -97,7 +102,7 @@ class ROSPointNet2:
                'labels_pl': labels_pl,
                'is_training_pl': is_training_pl,
                'pred': pred,
-               'loss': total_loss}
+               'loss': loss}
 
             self.is_initialize = True
 
@@ -110,7 +115,7 @@ class ROSPointNet2:
         #cur_batch_data = np.zeros((BATCH_SIZE,NUM_POINT,TEST_DATASET.num_channel()))
         #cur_batch_label = np.zeros((BATCH_SIZE), dtype=np.int32)
         cur_batch_data = np.zeros((1, data.shape[0], data.shape[1]))
-        cur_batch_label = np.zeros((1), dtype=np.int32)
+        cur_batch_label = np.zeros((self.BATCH_SIZE, self.NUM_POINT)).astype(np.int32)#np.zeros((1), dtype=np.int32)
 
         total_correct = 0
         total_seen = 0
@@ -126,52 +131,37 @@ class ROSPointNet2:
         #print('Batch: %03d, batch size: %d'%(batch_idx, bsize))
         # for the last batch in the epoch, the bsize:end are from last batch
         cur_batch_data[0:bsize,...] = batch_data
+
         cur_batch_label[0] = batch_label
 
         batch_pred_sum = np.zeros((self.BATCH_SIZE, self.NUM_CLASSES)) # score for classes
+
+        loss_val = 0
+        pred_val = np.zeros((self.BATCH_SIZE, self.NUM_POINT, self.NUM_CLASSES))
 
         for vote_idx in range(self.NUM_VOTES):
             # Shuffle point order to achieve different farthest samplings
             shuffled_indices = np.arange(self.NUM_POINT)
             np.random.shuffle(shuffled_indices)
-            if self.NORMAL:
-                rotated_data = provider.rotate_point_cloud_by_angle_with_normal(cur_batch_data[:, shuffled_indices, :],
-                    vote_idx/float(self.NUM_VOTES) * np.pi * 2)
-            else:
-                rotated_data = provider.rotate_point_cloud_by_angle(cur_batch_data[:, shuffled_indices, :],
-                    vote_idx/float(self.NUM_VOTES) * np.pi * 2)
+            rotated_data = provider.rotate_point_cloud_by_angle(cur_batch_data[:, shuffled_indices, :],
+                                                                vote_idx/float(self.NUM_VOTES) * np.pi * 2)
             feed_dict = {self.ops['pointclouds_pl']: rotated_data,
                          self.ops['labels_pl']: cur_batch_label,
                          self.ops['is_training_pl']: is_training}
-            loss_val, pred_val = self.sess.run([self.ops['loss'], self.ops['pred']], feed_dict=feed_dict)
-            batch_pred_sum += pred_val
-        min_pred_val = np.argmin(batch_pred_sum, 1)
-        pred_val = np.argmax(batch_pred_sum, 1)
-        """
-        batch_pred_sum[0][pred_val[0]] = -100000000000000000000
-        second_pred_val = np.argmax(batch_pred_sum, 1)
-        batch_pred_sum[0][second_pred_val[0]] = -100000000000000000000
-        third_pred_val = np.argmax(batch_pred_sum, 1)
-        """
-        #print heapq.nlargest(3, range(len(batch_pred_sum)), batch_pred_sum.take)
-        print(Fore.RED + self.SHAPE_NAMES[pred_val[0]])
-        print(Style.RESET_ALL)
+            temp_loss_val, temp_pred_val = self.sess.run([self.ops['loss'], self.ops['pred']], feed_dict=feed_dict)
+            loss_val += temp_loss_val
+            pred_val += temp_pred_val
+        loss_val /= float(self.NUM_VOTES)
 
-        #print self.print_letters(self.SHAPE_NAMES[second_pred_val[0]])# self.SHAPE_NAMES[third_pred_val[0]]#, self.SHAPE_NAMES[min_pred_val[0]]
-        """
-        for i in range(bsize):
-            l = batch_label[i]
-            total_seen_class[l] += 1
-            total_correct_class[l] += (pred_val[i] == l)
+        print pred_val
 
-        log_string('eval mean loss: %f' % (loss_sum / float(batch_idx)))
-        log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
-        log_string('eval avg class acc: %f' % (np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
-
-        class_accuracies = np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float)
-        for i, name in enumerate(SHAPE_NAMES):
-            log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         """
+        for i in range(cur_batch_size):
+            cat = seg_label_to_cat[cur_batch_label[i,0]]
+            logits = cur_pred_val_logits[i,:,:]
+            cur_pred_val[i,:] = np.argmax(logits[:,seg_classes[cat]], 1) + seg_classes[cat][0]
+        """
+
 
     def call(self,input):
         with tf.Graph().as_default():

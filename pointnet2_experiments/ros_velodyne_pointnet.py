@@ -13,10 +13,11 @@ import pcl
 import sensor_msgs.point_cloud2
 import ros_numpy
 import signal
+import copy
 
 rospy.init_node("PointCloud2_test")
 
-num_point = 100
+num_point = 512
 custom_subscriber = PointCloudSubscriber("/velodyne_points/filtered")
 publisher = PointCloudPublisher("/pointnet2/output")
 ros_pointnet2 = ROSPointNet2(num_point=num_point)
@@ -45,8 +46,8 @@ try:
 
         tree = p.make_kdtree()
         ec = p.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.2)
-        ec.set_MinClusterSize(num_point*1.6)
+        ec.set_ClusterTolerance(0.15)
+        ec.set_MinClusterSize(num_point)
         #ec.set_MaxClusterSize(num_point*1.5)
         ec.set_SearchMethod(tree)
         cluster_indices = ec.Extract()
@@ -68,9 +69,15 @@ try:
                 points[i][0] = p[indice][0]
                 points[i][1] = p[indice][1]
                 points[i][2] = p[indice][2]
-            ros_pointnet2.call(points)
+
             publisher.custom_publish(points, frame_id = "velodyne")
-            rospy.sleep(2)
+
+            prepared_points = copy.deepcopy(points)
+            for i in range(1024/num_point -2):
+                prepared_points = np.vstack((prepared_points, points))
+            print prepared_points.shape
+            ros_pointnet2.call(prepared_points)
+            rospy.sleep(4.5)
 
 
 
