@@ -46,3 +46,27 @@ rtfind(){
     unset raw_string raw_output output auxiliar_grep
 }
 
+
+rossource(){
+    declare -a my_array
+    my_array=()
+    for d in ~/*_ws/; do my_array+=($d); done
+    #for index in "${!my_array[@]}"; do echo "$index"; done
+    #for i in "${my_array[@]}"; do echo "$i"; done
+  
+    for index in "${!my_array[@]}"
+    do
+        echo "key: $index, possible workspace: ${my_array[$index]}"
+    done
+  
+    echo "Select the desired workspace index"
+    read selection
+    select_workspace=${my_array[$selection]}
+  
+    echo $select_workspace'devel/setup.bash'
+    source $select_workspace'devel/setup.bash'
+    #find -name "*_ws*" -type d
+    ROS_WORKSPACE=$select_workspace'src'
+    unset select_workspace my_array selection
+ }
+
