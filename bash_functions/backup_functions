@@ -1,0 +1,252 @@
+lng() {
+  setxkbmap -layout $1
+}
+
+generate_rosdataset() {
+n=$1
+shift
+for ((i = 1; i <= $n; i++))
+do
+    echo $1 $2 $3
+    echo "$(tput setaf 1) Cycles to GO $((i)) $(tput sgr 0)"
+    echo "EXECUTING " $@
+    echo rosbag record $3 -o $2
+    rosbag record $2 --duration=5s -o $1
+done
+unset n
+}
+
+
+
+
+ws_selector(){
+  declare -a my_array
+  my_array=()
+  for d in ~/*_ws/; do my_array+=($d); done
+  #for index in "${!my_array[@]}"; do echo "$index"; done
+  #for i in "${my_array[@]}"; do echo "$i"; done
+
+  echo "Select the desired workspace index"
+  for index in "${!my_array[@]}"
+  do
+    echo "ID: $index, possible workspace: ${my_array[$index]}"
+  done
+
+  echo "Type the id of the desired workspace. Ctrl-C to skip"
+  read selection
+  select_workspace=${my_array[$selection]}
+
+  echo 'Sourcing '$select_workspace'devel/setup.bash'
+  source $select_workspace'devel/setup.bash'
+  #find -name "*_ws*" -type d
+  ROS_WORKSPACE=$select_workspace'src'
+  unset select_workspace my_array selection
+}
+
+fieldsafe_filter(){
+  fieldsafe_dir='/media/jose/ADATA HD710/PHD/datasets/FIELDSAFE/'
+  #"/media/datasets/FieldSAFE/"
+  topics=$@
+  #f_list=$(find "$fieldsafe_dir" -name '*.bag')
+  f_list=$(find "." -name '*.bag')
+
+  arguments='topic=="/tf"'
+
+
+  counter=0
+
+  for word in $@
+  do
+      recorded_topic="$word"
+      echo $recorded_topic
+      recorded_topic="\"$recorded_topic\""
+      echo $recorded_topic
+      arguments="$arguments or topic==$recorded_topic"
+  done
+
+  echo $arguments
+
+  for f in $f_list;
+  do
+      espeak "New dataset"
+      echo $f
+      rosbag filter $f filter_bag_$counter".bag" "$arguments"
+      counter=$((counter+1))
+
+  done
+
+  espeak "Script finished"
+}
+
+nmbu_mail(){
+   google-chrome portal.nmbu.no
+}
+
+gitcommit(){
+   git add *
+   commit_msgs=$(echo $@)
+   git commit -m "$commit_msgs"
+   git push origin
+   unset commit_msgs
+}
+
+
+catkin_eclipse(){
+   packages=$(echo $@)
+   catkin build --force-cmake -G"Eclipse CDT4 - Unix Makefiles" "$packages"
+   unset packages
+}
+
+
+texreset(){
+   find ./ -type f -not \( -iname \*.tex -o -iname \*.pdf -o -iname \*.bib -o -iname \*png -o -iname \*jpg \)  | xargs rm
+}
+
+
+config_thorvald(){
+   #robot='thorvald-'$1
+   robot=$1
+   export ROS_MASTER_URI=http://$(echo $robot):11311
+   #export ROS_MASTER_URI=http://192.168.1.55:11311
+   #export ROS_HOSTNAME=$(hostname).local
+   echo -e "\e[32m ROS_MASTER_URI \e[0m $ROS_MASTER_URI"
+   echo -e "\e[32m ROS_HOSTNAME \e[0m $ROS_HOSTNAME"
+   echo -e "\e[32m ROS_IP \e[0m $ROS_IP"
+   alias robot_ssh="ssh thorvald@$robot"
+   #unset ROS_IP
+}
+
+grass_robot_test(){
+   export ROS_MASTER_URI=http://localhost:11311
+   #export ROS_IP=10.230.41.181
+   export ROS_HOSTNAME='jose-ThinkPad-P52'
+   echo -e "\e[32m ROS_MASTER_URI \e[0m $ROS_MASTER_URI"
+   echo -e "\e[32m ROS_HOSTNAME \e[0m $ROS_HOSTNAME"
+   #alias robot_ssh="ssh thorvald@10.230.41.181"
+   #unset ROS_IP
+}
+
+
+mendeley(){
+   eval sudo /home/jose/third-part-software/mendeleydesktop-1.19.3-linux-x86_64/bin/mendeleydesktop
+}
+
+clion(){
+   eval /home/jose/third-part-software/clion-2018.3.4/bin/clion.sh
+}
+
+
+pycharm(){
+    eval /home/jose/third-part-software/pycharm-community-2019.1.3/bin/pycharm.sh
+}
+
+rosignore(){
+   touch CATKIN_IGNORE
+}
+
+
+deepspeech_mic(){
+
+   cd ~/third-part-software/deepspeech/deepspeech-0.5.0-models && python3 /home/jose/experiments_ws/deepspeech/mic_streaming.py --model output_graph.pbmm --alphabet alphabet.txt --lm lm.binary --trie trie --ft_model /home/jose/experiments_ws/some_scripts/speech/fastText_examples/safe_actions.bin
+
+}
+
+
+
+repeat() {
+n=$1
+shift
+for ((i = 1; i < $((n+1)); i++))
+do
+    echo "$(tput setaf 1) Executing cyle $((i)) of $((n)) $(tput sgr 0)"
+    echo "EXECUTING " $@
+    notify-send Iteration $i
+    $@
+done
+unset n
+notify-send Scipt finished
+}
+
+
+
+runallbags(){
+  select_dir=$1
+  f_list=$(find $select_dir -name '*.bag' -not -path "*orig*")
+  espeak "Starting script"
+
+
+  for f in $f_list;
+  do
+      espeak "New file"
+      notify-send "New bag file"
+      echo $f
+      rosbag play $f --clock grid_map:=grid_map_old
+      espeak "end file"
+      sleep 1
+  done
+
+  espeak "Finishing scripts"
+  rostopic pub /test_finished std_msgs/Empty "{}" -1
+  notify-send Scipt finished
+}
+
+
+darknet_test(){
+  mkdir predictions
+  counter=1;
+  for i in for i in  /home/jose/media/datasets/KITTI/data_tracking_image_2/testing/image_02/*/*;
+  do
+      echo "IMAGE ", $i, $counter
+      ./darknet detector test /home/jose/ros_ws/src/gr_perception/gr_ml/nb/yolov3/config/kitti2021.data /home/jose/ros_ws/src/gr_perception/gr_ml/nb/yolov3/config/iros2021-tiny.cfg /home/jose/media/datasets/weights/kitti/iros2021-tiny_10000.weights $i
+      mv predictions.png predictions/image_$((counter)).png
+      ((counter++))
+  done
+}
+
+
+clean_docker(){
+  a=$(docker images -a --filter=dangling=true -q)
+  b=$(docker ps --filter=status=exited --filter=status=created -q)
+  docker rmi $a
+  docker rm $b
+  unset a
+  unset b
+}
+
+
+count_classes(){
+  echo classes iterations
+  cat i*.txt |cut -d ' ' -f1 | sort | uniq -c
+}
+
+yolo_count_classes(){
+  if [ -n "$1" ]; then
+    echo "counting classes from file " $1
+  else
+    echo "Images file must be  supplied."
+    return
+  fi
+
+  #a=$(cat /home/jose/media/elsevier/datasets/real_rgb_files/nibio_valid.txt | rev | cut -c 4- | rev )
+  b=(0,0,0,0)
+
+  #Cycle of file
+  while read a;
+    do
+    #replace jpg by txt
+    i=$(echo $a|rev|cut -c 4- | rev)
+    echo $i$"txt"
+    #read and iterate over each file
+    while read p;
+      do
+      index=$(echo $p | cut -c 1-1);
+      #sum 1 to index
+      let b[index]=b[index]+1 ;
+    done < $i$"txt";
+  done < $1
+
+  echo ${b[@]}
+  unset a
+  unset b
+  unset index
+}
