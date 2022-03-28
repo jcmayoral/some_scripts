@@ -1,3 +1,14 @@
+recursive_repeat() {
+echo "NEW SEQUENCE " ${@:2}
+for ((i = 1; i <= $1; i++))
+do
+    echo "$(tput setaf 1) Cycles to GO $((i)) $(tput sgr 0)"
+    echo "EXECUTING " ${@:2}
+    a=$(${@:2})
+    echo $a
+done
+}
+
 
 repeat() {
 n=$1
